@@ -1,0 +1,37 @@
+[project]
+name = "ai-employee-platform-backend"
+version = "0.1.0"
+description = "FastAPI orchestrator for the AI Employee Platform (Finance is the first domain)"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["app", "domains", "platform", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "UP",  # pyupgrade
+  "B",   # bugbear
+  "SIM", # simplify
+  "N",   # pep8-naming
+]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "domains", "platform"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
