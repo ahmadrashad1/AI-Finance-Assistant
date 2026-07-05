@@ -32,3 +32,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Playwright MCP tool artifacts (snapshots/screenshots from ad-hoc verification)
+.playwright-mcp/

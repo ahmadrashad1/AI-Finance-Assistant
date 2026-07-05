@@ -5,5 +5,6 @@ conversation UI state. It never contains business logic, never decides
 which tools to call, and never talks directly to PostgreSQL — everything
 goes through the FastAPI backend.
 
-No application code exists yet. TypeScript/ESLint tooling is configured in
-`tsconfig.json` and `.eslintrc.json` in this directory.
+A placeholder home page (`app/page.tsx`) confirms connectivity to the FastAPI
+backend via `lib/api-client.ts`, a typed fetch wrapper. TypeScript/ESLint
+tooling is configured in `tsconfig.json` and `eslint.config.mjs`.

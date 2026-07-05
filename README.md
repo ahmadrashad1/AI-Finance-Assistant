@@ -57,9 +57,32 @@ lifecycle, structured logging, error categorization, testing/evaluation
 requirements, naming conventions). In short: **the LLM reasons; FastAPI
 executes.** Business logic lives in services, never in prompts.
 
+## Getting started (Milestone 1: Project Foundation)
+
+```bash
+make db-up                                  # Postgres 16 via docker-compose
+
+cd backend
+python -m venv .venv && .venv/Scripts/activate   # .venv/bin/activate on macOS/Linux
+pip install -e ".[dev]"
+cp .env.example .env
+uvicorn app.main:app --reload                # http://localhost:8000/api/health
+
+cd ../frontend
+npm install
+cp .env.example .env.local
+npm run dev                                  # http://localhost:3000
+```
+
+`make test` and `make lint` run the backend (pytest, ruff, mypy) and
+frontend (ESLint, tsc) checks; see the root `Makefile`. CI (`.github/workflows/ci.yml`)
+runs the same checks on every push/PR.
+
 ## Status
 
-Repository scaffold only — no application logic has been implemented yet.
-See `docs/PRD.md`, Chapter 16 ("Development Roadmap & Milestones") for the
-planned build sequence, starting from Milestone 1 (project foundation)
-through Milestone 10 (MVP complete).
+Milestone 1 (Project Foundation) is complete: FastAPI + Next.js skeletons,
+structured logging, the five-category error-handling middleware, async
+SQLAlchemy + Alembic wiring, Postgres via docker-compose, and CI — no
+finance functionality yet. See `docs/PRD.md`, Chapter 16 ("Development
+Roadmap & Milestones") for the full planned build sequence through
+Milestone 10 (MVP complete).
