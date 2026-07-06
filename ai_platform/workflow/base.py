@@ -3,10 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-
-InputT = TypeVar("InputT")
-EventT = TypeVar("EventT")
 
 
 @dataclass
@@ -17,7 +13,7 @@ class WorkflowContext:
     conversation_id: str | None = None
 
 
-class Workflow(ABC, Generic[InputT, EventT]):
+class Workflow[InputT, EventT](ABC):
     """Base class enforcing the mandatory lifecycle: Initialize -> Validate
     -> Execute -> Log -> Evaluate -> Complete. No step may be skipped.
     """
