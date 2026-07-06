@@ -19,5 +19,5 @@ test:
 	cd backend && python -m pytest
 
 lint:
-	cd backend && python -m ruff check . && python -m mypy app alembic
+	cd backend && python -m ruff check . ../ai_platform && python -m mypy app alembic ../ai_platform
 	cd frontend && npm run lint && npm run typecheck

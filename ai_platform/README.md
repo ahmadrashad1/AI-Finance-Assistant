@@ -1,8 +1,9 @@
-# Platform
+# AI Platform
 
-Reusable, domain-agnostic AI employee infrastructure. Nothing here knows about
-finance, invoices, or any specific business domain — that belongs under
-`domains/`.
+Reusable, domain-agnostic AI employee infrastructure. Nothing here knows
+about finance, invoices, or any specific business domain — that belongs
+under `domains/`. Importable as the `ai_platform` Python package; installed
+editable into the backend's virtualenv (see `backend/README.md`).
 
 - `orchestration/` — the AI request lifecycle: memory retrieval, prompt
   construction, planning, execution-plan building, tool dispatch, response

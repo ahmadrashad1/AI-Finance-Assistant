@@ -41,6 +41,7 @@ tests/                        # pytest + httpx async tests for all of the above
 ```bash
 python -m venv .venv
 .venv/Scripts/activate        # .venv/bin/activate on macOS/Linux
+pip install -e ..
 pip install -e ".[dev]"
 cp .env.example .env           # adjust DATABASE_URL etc. if needed
 uvicorn app.main:app --reload
