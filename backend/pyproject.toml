@@ -49,6 +49,14 @@ ignore = []
 [tool.ruff.lint.isort]
 known-first-party = ["app", "domains", "ai_platform"]
 
+[tool.ruff.lint.flake8-bugbear]
+# B008 only exempts Depends() calls by default when the parameter's type
+# annotation is an immutable builtin (e.g. `bool`). FastAPI's dependency
+# injection pattern intentionally calls Depends() in argument defaults for
+# arbitrary (non-builtin) types, so mark it explicitly immutable rather than
+# scattering `# noqa: B008` across every endpoint.
+extend-immutable-calls = ["fastapi.Depends"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
