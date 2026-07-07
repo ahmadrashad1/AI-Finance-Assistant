@@ -20,7 +20,7 @@ class ToolExecutionModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_id: Mapped[str] = mapped_column(String(64), nullable=False)
     conversation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{SCHEMA}.conversations.id"), nullable=False
+        ForeignKey(f"{SCHEMA}.conversations.id"), nullable=False, index=True
     )
     tool: Mapped[str] = mapped_column(String(100), nullable=False)
     parameters: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
