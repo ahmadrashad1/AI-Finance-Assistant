@@ -58,13 +58,15 @@ class ToolExecutor:
             else:
                 try:
                     raw_result = await spec.handler(validated_params)
-                    result = validate_result(spec, raw_result.model_dump())
-                except ResultValidationError as exc:
-                    status = "error"
-                    error_message = str(exc)
                 except Exception as exc:
                     status = "error"
                     error_message = f"Tool '{tool}' failed: {exc}"
+                else:
+                    try:
+                        result = validate_result(spec, raw_result.model_dump())
+                    except ResultValidationError as exc:
+                        status = "error"
+                        error_message = str(exc)
 
         duration_ms = int((time.monotonic() - start) * 1000)
 
