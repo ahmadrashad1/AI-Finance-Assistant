@@ -66,3 +66,42 @@ async def test_rate_limit_error_becomes_ai_error(monkeypatch: pytest.MonkeyPatch
     with pytest.raises(AIError):
         async for _ in service.stream_reply("system", [], "hi"):
             pass
+
+
+@pytest.mark.asyncio
+async def test_complete_returns_full_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = AnthropicLLMService(api_key="test-key", model="claude-haiku-4-5")
+
+    class _FakeTextBlock:
+        type = "text"
+        text = "Hello world"
+
+    class _FakeMessage:
+        content = [_FakeTextBlock()]
+
+    async def fake_create(**kwargs: Any) -> _FakeMessage:
+        return _FakeMessage()
+
+    monkeypatch.setattr(service._client.messages, "create", fake_create)
+
+    result = await service.complete("system", [], "hi")
+    assert result == "Hello world"
+
+
+@pytest.mark.asyncio
+async def test_complete_rate_limit_error_becomes_ai_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = AnthropicLLMService(api_key="test-key", model="claude-haiku-4-5")
+
+    async def fake_create(**kwargs: Any) -> Any:
+        raise anthropic.RateLimitError(
+            message="rate limited",
+            response=httpx.Response(429, request=_fake_request()),
+            body=None,
+        )
+
+    monkeypatch.setattr(service._client.messages, "create", fake_create)
+
+    with pytest.raises(AIError):
+        await service.complete("system", [], "hi")

@@ -77,3 +77,45 @@ async def test_rate_limit_error_becomes_ai_error(monkeypatch: pytest.MonkeyPatch
     with pytest.raises(AIError):
         async for _ in service.stream_reply("system", [], "hi"):
             pass
+
+
+@pytest.mark.asyncio
+async def test_complete_returns_message_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = GroqLLMService(api_key="test-key", model="llama-3.1-8b-instant")
+
+    class _FakeMessage:
+        content = '{"direct_answer": true}'
+
+    class _FakeChoice:
+        message = _FakeMessage()
+
+    class _FakeCompletion:
+        choices = [_FakeChoice()]
+
+    async def fake_create(**kwargs: Any) -> _FakeCompletion:
+        assert kwargs["response_format"] == {"type": "json_object"}
+        return _FakeCompletion()
+
+    monkeypatch.setattr(service._client.chat.completions, "create", fake_create)
+
+    result = await service.complete("system", [], "hi")
+    assert result == '{"direct_answer": true}'
+
+
+@pytest.mark.asyncio
+async def test_complete_rate_limit_error_becomes_ai_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = GroqLLMService(api_key="test-key", model="llama-3.1-8b-instant")
+
+    async def fake_create(**kwargs: Any) -> Any:
+        raise groq.RateLimitError(
+            message="rate limited",
+            response=httpx.Response(429, request=_fake_request()),
+            body=None,
+        )
+
+    monkeypatch.setattr(service._client.chat.completions, "create", fake_create)
+
+    with pytest.raises(AIError):
+        await service.complete("system", [], "hi")

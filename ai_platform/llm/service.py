@@ -18,6 +18,8 @@ class LLMService(Protocol):
         self, system: str, history: list[dict[str, str]], message: str
     ) -> AsyncIterator[str]: ...
 
+    async def complete(self, system: str, history: list[dict[str, str]], message: str) -> str: ...
+
 
 class AnthropicLLMService:
     def __init__(self, api_key: str, model: str) -> None:
@@ -37,6 +39,23 @@ class AnthropicLLMService:
             ) as stream:
                 async for text in stream.text_stream:
                     yield text
+        except anthropic.APIConnectionError as exc:
+            raise AIError("I couldn't reach the assistant right now. Please try again.") from exc
+        except anthropic.RateLimitError as exc:
+            raise AIError("The assistant is busy right now. Please try again shortly.") from exc
+        except anthropic.APIStatusError as exc:
+            raise AIError("I couldn't process that right now. Please try again.") from exc
+
+    async def complete(self, system: str, history: list[dict[str, str]], message: str) -> str:
+        messages = [*history, {"role": "user", "content": message}]
+        try:
+            response = await self._client.messages.create(
+                model=self._model,
+                max_tokens=CHAT_MAX_TOKENS,
+                system=system,
+                messages=messages,  # type: ignore[arg-type]
+            )
+            return "".join(block.text for block in response.content if block.type == "text")
         except anthropic.APIConnectionError as exc:
             raise AIError("I couldn't reach the assistant right now. Please try again.") from exc
         except anthropic.RateLimitError as exc:
@@ -73,6 +92,26 @@ class GroqLLMService:
                 delta = chunk.choices[0].delta.content
                 if delta:
                     yield delta
+        except groq.APIConnectionError as exc:
+            raise AIError("I couldn't reach the assistant right now. Please try again.") from exc
+        except groq.RateLimitError as exc:
+            raise AIError("The assistant is busy right now. Please try again shortly.") from exc
+        except groq.APIStatusError as exc:
+            raise AIError("I couldn't process that right now. Please try again.") from exc
+
+    async def complete(self, system: str, history: list[dict[str, str]], message: str) -> str:
+        messages = [
+            {"role": "system", "content": system},
+            *history,
+            {"role": "user", "content": message},
+        ]
+        try:
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,  # type: ignore[call-overload]
+                response_format={"type": "json_object"},
+            )
+            return response.choices[0].message.content or ""
         except groq.APIConnectionError as exc:
             raise AIError("I couldn't reach the assistant right now. Please try again.") from exc
         except groq.RateLimitError as exc:
