@@ -18,8 +18,16 @@ from app.db.session import get_engine, get_sessionmaker  # noqa: E402
 
 @pytest.fixture
 async def db_session() -> AsyncIterator[AsyncSession]:
+    # pytest-asyncio gives each test function its own event loop, but
+    # `get_engine()` caches a single AsyncEngine (and asyncpg connection pool)
+    # at module scope for the lifetime of the process. Without disposing the
+    # pool here, a later test's loop would try to reuse connections opened
+    # under a previous (already-closed) loop, raising
+    # `RuntimeError: Event loop is closed` during pool cleanup. Disposing
+    # after every test forces a fresh pool bound to the next test's loop.
     async with get_sessionmaker()() as session:
         yield session
+    await get_engine().dispose()
 
 
 @pytest.fixture
