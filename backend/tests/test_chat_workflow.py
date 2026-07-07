@@ -95,3 +95,29 @@ async def test_empty_message_is_rejected_before_any_llm_call(
             pass
 
     assert llm_service.last_message is None
+
+
+@pytest.mark.asyncio
+async def test_context_vars_set_during_run_and_reset_after(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    from app.core.logging import conversation_id_ctx_var, workflow_ctx_var
+
+    llm_service = FakeLLMService(tokens=["ok"])
+    workflow, _repository = _make_workflow(db_session, llm_service)
+
+    assert conversation_id_ctx_var.get() is None
+    assert workflow_ctx_var.get() is None
+
+    seen_workflow_during_run: str | None = None
+    seen_conversation_id_during_run: str | None = None
+    async for event in workflow.run(ChatRequest(session_id="session-wf-ctx", message="hi")):
+        if event.type == "token":
+            seen_workflow_during_run = workflow_ctx_var.get()
+            seen_conversation_id_during_run = conversation_id_ctx_var.get()
+    await db_session.commit()
+
+    assert seen_workflow_during_run == "chat"
+    assert seen_conversation_id_during_run is not None
+    assert conversation_id_ctx_var.get() is None
+    assert workflow_ctx_var.get() is None
