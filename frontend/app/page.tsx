@@ -87,7 +87,7 @@ export default function HomePage() {
             setError(event.message);
             setMessages((prev) => {
               const last = prev[prev.length - 1];
-              if (last && last.role === "assistant" && last.content === "") {
+              if (last && last.role === "assistant" && (last.content === "" || last.content.startsWith("Running "))) {
                 return prev.slice(0, -1);
               }
               return prev;
