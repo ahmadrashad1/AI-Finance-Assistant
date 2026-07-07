@@ -52,7 +52,7 @@ SDK (`claude-haiku-4-5`), Next.js App Router, TypeScript strict, SSE
   `workflow/README.md`, `memory/README.md`, `orchestration/README.md`,
   `tool_registry/README.md`, `evaluation/README.md` with it)
 - Create: `ai_platform/__init__.py`
-- Create: `ai_platform/pyproject.toml`
+- Create: `pyproject.toml` (repo root — see note below)
 - Create: `ai_platform/workflow/__init__.py`
 - Create: `ai_platform/memory/__init__.py`
 - Create: `ai_platform/orchestration/__init__.py`
@@ -87,7 +87,16 @@ __version__ = "0.1.0"
 
 - [ ] **Step 3: Add packaging metadata**
 
-`ai_platform/pyproject.toml`:
+The `pyproject.toml` must live at the **repo root**, as a sibling of the
+`ai_platform/` directory — mirroring exactly how `backend/pyproject.toml`
+sits beside `backend/app/` with `packages = ["app"]`. Hatchling resolves
+`packages` relative to the directory containing `pyproject.toml`, so a
+`pyproject.toml` placed *inside* `ai_platform/` itself would tell it to
+look for a nonexistent nested `ai_platform/ai_platform/` — do not put it
+there.
+
+`pyproject.toml` (repo root, new file — the repo has no root-level
+`pyproject.toml` today):
 ```toml
 [project]
 name = "ai-platform"
@@ -138,7 +147,7 @@ to:
 ```bash
 python -m venv .venv
 .venv/Scripts/activate        # .venv/bin/activate on macOS/Linux
-pip install -e ../ai_platform
+pip install -e ..
 pip install -e ".[dev]"
 cp .env.example .env           # adjust DATABASE_URL etc. if needed
 uvicorn app.main:app --reload
@@ -192,7 +201,7 @@ Replace the `backend` job in `.github/workflows/ci.yml` with:
 
       - name: Install dependencies
         run: |
-          pip install -e ../ai_platform
+          pip install -e ..
           pip install -e ".[dev]"
 
       - name: Lint (ruff)
@@ -228,7 +237,7 @@ def test_ai_platform_package_is_importable() -> None:
 
 ```bash
 cd backend
-pip install -e ../ai_platform
+pip install -e ..
 pip install -e ".[dev]"
 python -m pytest tests/test_ai_platform_package.py -v
 ```
@@ -236,13 +245,13 @@ Expected: PASS immediately (the package content from Steps 1-3 already
 exists) — this step is really "confirm the install worked", since there is
 no red-then-green cycle for a pure packaging change. If it fails with
 `ModuleNotFoundError: No module named 'ai_platform'`, the editable install
-didn't take — re-run `pip install -e ../ai_platform` from inside the
+didn't take — re-run `pip install -e ..` from inside the
 activated `backend/.venv`.
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add ai_platform Makefile .github/workflows/ci.yml backend/README.md backend/tests/test_ai_platform_package.py
+git add ai_platform pyproject.toml Makefile .github/workflows/ci.yml backend/README.md backend/tests/test_ai_platform_package.py
 git commit -m "chore: rename platform/ to ai_platform/, make it installable"
 ```
 
@@ -1018,7 +1027,7 @@ async def test_window_is_bounded_to_last_ten_messages(
     window = await memory.get_context_window(conversation.id)
 
     assert len(window) == 10
-    assert window[0] == HistoryMessage(role="assistant", content="message-2")
+    assert window[0] == HistoryMessage(role="user", content="message-2")
     assert window[-1] == HistoryMessage(role="assistant", content="message-11")
 ```
 
@@ -1167,7 +1176,7 @@ git commit -m "feat: add versioned system prompt"
 - Create: `ai_platform/llm/service.py`
 - Modify: `backend/app/core/config.py`
 - Modify: `backend/.env.example`
-- Modify: `ai_platform/pyproject.toml` (already lists `anthropic` from
+- Modify: `pyproject.toml` (repo root — already lists `anthropic` from
   Task 1 — no change needed; noted here for traceability)
 - Create: `backend/tests/fakes.py`
 - Test: `backend/tests/test_anthropic_llm_service.py`
