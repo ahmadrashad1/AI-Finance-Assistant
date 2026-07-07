@@ -6,12 +6,17 @@ from app.api.health import router as health_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
+from app.core.tool_registry import get_tool_registry
 from app.middleware.request_context import RequestContextMiddleware
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
+    # Forces tool registration to happen now, at startup, rather than lazily
+    # on the first chat request - a malformed tool definition should fail
+    # fast (ADR-0004), not surface as a runtime planner error.
+    get_tool_registry()
 
     application = FastAPI(title="AI Employee Platform", version="0.1.0")
     # Added before RequestContextMiddleware so it wraps the request outermost and

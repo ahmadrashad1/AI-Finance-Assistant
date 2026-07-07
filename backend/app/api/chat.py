@@ -13,10 +13,15 @@ from ai_platform.llm.service import AnthropicLLMService, GroqLLMService, LLMServ
 from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.orchestration.chat_workflow import ChatEvent, ChatRequest, ChatWorkflow
+from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
+from ai_platform.tool_registry.executor import ToolExecutor
+from ai_platform.tool_registry.registry import ToolRegistry
+from ai_platform.tool_registry.repository import ToolExecutionRepository
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.core.logging import request_id_ctx_var
+from app.core.tool_registry import get_tool_registry
 from app.db.session import get_db_session
 
 router = APIRouter()
@@ -56,6 +61,8 @@ def _format_event(event: ChatEvent) -> str:
         payload["conversation_id"] = event.conversation_id
     if event.message is not None:
         payload["message"] = event.message
+    if event.tool is not None:
+        payload["tool"] = event.tool
     return f"data: {json.dumps(payload)}\n\n"
 
 
@@ -64,14 +71,21 @@ async def post_chat(
     body: ChatMessageRequest,
     db: AsyncSession = Depends(get_db_session),
     llm_service: LLMService = Depends(get_llm_service),
+    tool_registry: ToolRegistry = Depends(get_tool_registry),
 ) -> StreamingResponse:
     repository = ConversationRepository(db)
     memory = ConversationMemory(repository)
+    prompt_builder = PromptBuilder()
+    execution_repository = ToolExecutionRepository(db)
+    tool_executor = ToolExecutor(tool_registry, execution_repository)
+    planner = Planner(llm_service, tool_registry, prompt_builder)
     workflow = ChatWorkflow(
         repository=repository,
         memory=memory,
-        prompt_builder=PromptBuilder(),
+        prompt_builder=prompt_builder,
         llm_service=llm_service,
+        planner=planner,
+        tool_executor=tool_executor,
         request_id=request_id_ctx_var.get(),
     )
     chat_request = ChatRequest(
