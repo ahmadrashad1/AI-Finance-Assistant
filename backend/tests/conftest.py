@@ -33,7 +33,14 @@ async def db_session() -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-async def clean_db() -> None:
+async def clean_db() -> AsyncIterator[None]:
+    # See the comment on `db_session` above: the engine/pool is cached at
+    # module scope but each test function gets its own event loop, so any
+    # connections opened here must be disposed before the next test's loop
+    # tries to reuse them. Tests that only depend on `clean_db` (e.g.
+    # HTTP-level tests that exercise the app's own DB session rather than
+    # the `db_session` fixture) would otherwise leak stale connections into
+    # the next test and fail with "Event loop is closed".
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.execute(
@@ -42,3 +49,7 @@ async def clean_db() -> None:
                 "application.conversations, application.sessions CASCADE"
             )
         )
+    try:
+        yield
+    finally:
+        await get_engine().dispose()
