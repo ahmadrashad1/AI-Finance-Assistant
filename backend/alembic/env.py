@@ -21,6 +21,7 @@ if config.config_file_name is not None:
 # Models register themselves on Base.metadata by being imported here before
 # Alembic runs.
 from ai_platform.memory import models as _memory_models  # noqa: E402,F401
+from ai_platform.tool_registry import models as _tool_registry_models  # noqa: E402,F401
 
 target_metadata = Base.metadata
 

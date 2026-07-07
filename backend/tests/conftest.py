@@ -45,7 +45,7 @@ async def clean_db() -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE TABLE application.messages, "
+                "TRUNCATE TABLE application.tool_executions, application.messages, "
                 "application.conversations, application.sessions CASCADE"
             )
         )
