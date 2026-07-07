@@ -1,0 +1,93 @@
+from __future__ import annotations
+
+import logging
+import uuid
+from collections.abc import AsyncIterator
+from dataclasses import dataclass
+
+from ai_platform.llm.service import LLMService
+from ai_platform.memory.conversation_memory import ConversationMemory
+from ai_platform.memory.repository import ConversationRepository
+from ai_platform.orchestration.prompt_builder import PromptBuilder
+from ai_platform.prompts.system_prompt import SYSTEM_PROMPT
+from ai_platform.workflow.base import Workflow, WorkflowContext
+from app.core.errors import ValidationError
+
+logger = logging.getLogger("ai_platform.chat")
+
+
+@dataclass
+class ChatRequest:
+    session_id: str
+    message: str
+    conversation_id: str | None = None
+
+
+@dataclass
+class ChatEvent:
+    type: str  # "token" | "done" | "error"
+    content: str | None = None
+    conversation_id: str | None = None
+    message: str | None = None
+
+
+class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
+    name = "chat"
+
+    def __init__(
+        self,
+        repository: ConversationRepository,
+        memory: ConversationMemory,
+        prompt_builder: PromptBuilder,
+        llm_service: LLMService,
+        request_id: str | None,
+    ) -> None:
+        self._repository = repository
+        self._memory = memory
+        self._prompt_builder = prompt_builder
+        self._llm_service = llm_service
+        self._request_id = request_id
+
+    def initialize(self, input_data: ChatRequest) -> WorkflowContext:
+        return WorkflowContext(
+            request_id=self._request_id, conversation_id=input_data.conversation_id
+        )
+
+    def validate(self, input_data: ChatRequest, context: WorkflowContext) -> None:
+        if not input_data.message.strip():
+            raise ValidationError("Please enter a message.")
+
+    async def execute(
+        self, input_data: ChatRequest, context: WorkflowContext
+    ) -> AsyncIterator[ChatEvent]:
+        await self._repository.get_or_create_session(input_data.session_id)
+
+        if input_data.conversation_id is None:
+            conversation = await self._repository.create_conversation(input_data.session_id)
+            conversation_id = conversation.id
+        else:
+            conversation_id = uuid.UUID(input_data.conversation_id)
+        context.conversation_id = str(conversation_id)
+
+        history = await self._memory.get_context_window(conversation_id)
+        prompt = self._prompt_builder.build(SYSTEM_PROMPT, history)
+        await self._repository.add_message(conversation_id, "user", input_data.message)
+
+        assistant_reply: list[str] = []
+        async for token in self._llm_service.stream_reply(
+            prompt.system, prompt.messages, input_data.message
+        ):
+            assistant_reply.append(token)
+            yield ChatEvent(type="token", content=token)
+
+        await self._repository.add_message(
+            conversation_id, "assistant", "".join(assistant_reply)
+        )
+        yield ChatEvent(type="done", conversation_id=str(conversation_id))
+
+    def log(self, context: WorkflowContext, events: list[ChatEvent]) -> None:
+        token_count = sum(1 for e in events if e.type == "token")
+        logger.info(
+            "chat turn complete",
+            extra={"conversation_id": context.conversation_id, "token_count": token_count},
+        )
