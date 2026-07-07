@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str
-    llm_provider: str = "openai"
+    llm_provider: str = "anthropic"
     llm_api_key: str | None = None
-    llm_model: str = "gpt-4o-mini"
+    llm_model: str = "claude-haiku-4-5"
     log_level: str = "INFO"
     cors_allowed_origins: str = "http://localhost:3000"
 
