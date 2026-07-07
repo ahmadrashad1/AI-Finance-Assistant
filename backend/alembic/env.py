@@ -18,8 +18,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Models register themselves on Base.metadata by being imported somewhere on the
-# import path before Alembic runs; there are none yet (infrastructure only).
+# Models register themselves on Base.metadata by being imported here before
+# Alembic runs.
+from ai_platform.memory import models as _memory_models  # noqa: E402,F401
+
 target_metadata = Base.metadata
 
 
