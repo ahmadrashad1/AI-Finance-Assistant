@@ -68,7 +68,12 @@ export default function HomePage() {
 
       try {
         for await (const event of streamChat(sessionId, message, activeConversationId)) {
-          if (event.type === "token") {
+          if (event.type === "tool_call") {
+            setMessages((prev) => [
+              ...prev.slice(0, -1),
+              { role: "assistant", content: `Running ${event.tool}…` },
+            ]);
+          } else if (event.type === "token") {
             assistantContent += event.content;
             setMessages((prev) => [
               ...prev.slice(0, -1),

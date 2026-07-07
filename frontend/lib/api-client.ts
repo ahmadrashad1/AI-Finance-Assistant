@@ -29,7 +29,12 @@ export interface ChatErrorEvent {
   message: string;
 }
 
-export type ChatStreamEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent;
+export interface ChatToolCallEvent {
+  type: "tool_call";
+  tool: string;
+}
+
+export type ChatStreamEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatToolCallEvent;
 
 export interface ConversationSummary {
   id: string;
