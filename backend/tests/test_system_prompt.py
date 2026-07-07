@@ -2,9 +2,9 @@ from ai_platform.prompts.system_prompt import AUTHOR, CHANGELOG, SYSTEM_PROMPT, 
 
 
 def test_system_prompt_is_versioned() -> None:
-    assert VERSION == "1.0.0"
+    assert VERSION == "1.1.0"
     assert AUTHOR
-    assert len(CHANGELOG) >= 1
+    assert len(CHANGELOG) >= 2
 
 
 def test_system_prompt_never_invents_finance_data() -> None:
@@ -12,6 +12,8 @@ def test_system_prompt_never_invents_finance_data() -> None:
 
 
 def test_system_prompt_has_no_business_rules() -> None:
-    # Ch.8: system prompts define behavior, not business rules (dollar
-    # thresholds, approval policies, etc. belong in code, not the prompt).
     assert "$" not in SYSTEM_PROMPT
+
+
+def test_system_prompt_instructs_grounding_in_tool_results() -> None:
+    assert "tool results" in SYSTEM_PROMPT.lower()
