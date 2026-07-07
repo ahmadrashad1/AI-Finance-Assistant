@@ -25,9 +25,11 @@ async def db_session() -> AsyncIterator[AsyncSession]:
     # under a previous (already-closed) loop, raising
     # `RuntimeError: Event loop is closed` during pool cleanup. Disposing
     # after every test forces a fresh pool bound to the next test's loop.
-    async with get_sessionmaker()() as session:
-        yield session
-    await get_engine().dispose()
+    try:
+        async with get_sessionmaker()() as session:
+            yield session
+    finally:
+        await get_engine().dispose()
 
 
 @pytest.fixture
