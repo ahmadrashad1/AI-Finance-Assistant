@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
-from ai_platform.llm.service import AnthropicLLMService, LLMService
+from ai_platform.llm.service import AnthropicLLMService, GroqLLMService, LLMService
 from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.orchestration.chat_workflow import ChatEvent, ChatRequest, ChatWorkflow
@@ -42,7 +42,10 @@ class MessageOut(BaseModel):
 
 def get_llm_service() -> LLMService:
     settings = get_settings()
-    return AnthropicLLMService(api_key=settings.llm_api_key or "", model=settings.llm_model)
+    api_key = settings.llm_api_key or ""
+    if settings.llm_provider == "groq":
+        return GroqLLMService(api_key=api_key, model=settings.llm_model)
+    return AnthropicLLMService(api_key=api_key, model=settings.llm_model)
 
 
 def _format_event(event: ChatEvent) -> str:

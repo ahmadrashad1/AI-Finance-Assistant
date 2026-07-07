@@ -15,8 +15,8 @@ def test_settings_defaults_llm_provider_and_model(monkeypatch: pytest.MonkeyPatc
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)
     settings = Settings(_env_file=None)
-    assert settings.llm_provider == "anthropic"
-    assert settings.llm_model == "claude-haiku-4-5"
+    assert settings.llm_provider == "groq"
+    assert settings.llm_model == "llama-3.1-8b-instant"
 
 
 def test_settings_defaults_log_level_to_info(monkeypatch: pytest.MonkeyPatch) -> None:
