@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from pydantic import BaseModel, Field, model_validator
+from pydantic import ValidationError as PydanticValidationError
+
+from ai_platform.llm.service import LLMService
+from ai_platform.memory.conversation_memory import HistoryMessage
+from ai_platform.orchestration.prompt_builder import PromptBuilder
+from ai_platform.prompts.planning_prompt import build_planning_prompt
+from ai_platform.tool_registry.registry import ToolRegistry
+from app.core.errors import AIError
+
+
+class ToolCall(BaseModel):
+    tool: str
+    parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class Plan(BaseModel):
+    clarification_needed: str | None = None
+    tool_calls: list[ToolCall] | None = None
+    direct_answer: bool | None = None
+
+    @model_validator(mode="after")
+    def _validate_exactly_one_branch(self) -> Plan:
+        branches_set = [
+            self.clarification_needed is not None,
+            bool(self.tool_calls),
+            bool(self.direct_answer),
+        ]
+        if sum(branches_set) != 1:
+            raise ValueError(
+                "Plan must set exactly one of clarification_needed, tool_calls, direct_answer"
+            )
+        return self
+
+
+def _strip_code_fences(text: str) -> str:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        stripped = "\n".join(lines)
+    return stripped.strip()
+
+
+class Planner:
+    def __init__(
+        self, llm_service: LLMService, registry: ToolRegistry, prompt_builder: PromptBuilder
+    ) -> None:
+        self._llm_service = llm_service
+        self._registry = registry
+        self._prompt_builder = prompt_builder
+
+    async def create_plan(self, history: list[HistoryMessage], message: str) -> Plan:
+        tools_json = json.dumps(self._registry.to_planner_json(), indent=2)
+        system = build_planning_prompt(tools_json)
+        prompt = self._prompt_builder.build(system, history)
+        raw = await self._llm_service.complete(prompt.system, prompt.messages, message)
+        cleaned = _strip_code_fences(raw)
+        try:
+            data = json.loads(cleaned)
+            return Plan.model_validate(data)
+        except (json.JSONDecodeError, PydanticValidationError) as exc:
+            raise AIError(
+                "I had trouble figuring out how to answer that. Please try rephrasing."
+            ) from exc
