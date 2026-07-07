@@ -80,6 +80,13 @@ export default function HomePage() {
             setConversations(updated);
           } else if (event.type === "error") {
             setError(event.message);
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last && last.role === "assistant" && last.content === "") {
+                return prev.slice(0, -1);
+              }
+              return prev;
+            });
           }
         }
       } catch (err: unknown) {
@@ -98,6 +105,7 @@ export default function HomePage() {
         activeConversationId={activeConversationId}
         onSelect={handleSelectConversation}
         onNewConversation={handleNewConversation}
+        disabled={isStreaming}
       />
       <section style={{ flex: 1, display: "flex", flexDirection: "column", padding: "1rem" }}>
         <h1>AI Finance Assistant</h1>
