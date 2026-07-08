@@ -4,6 +4,10 @@ from domains.finance.models import (
     CustomerModel,
     DepartmentModel,
     EmployeeModel,
+    ExpenseClaimModel,
+    InvoiceItemModel,
+    InvoiceModel,
+    PaymentModel,
     ProductModel,
     PurchaseOrderItemModel,
     PurchaseOrderModel,
@@ -59,3 +63,33 @@ def test_purchase_order_item_model_references_po_and_product() -> None:
     fk_targets = {fk.target_fullname for fk in PurchaseOrderItemModel.__table__.foreign_keys}
     assert "finance.purchase_orders.id" in fk_targets
     assert "finance.products.id" in fk_targets
+
+
+def test_invoice_model_has_expected_columns() -> None:
+    columns = {c.name for c in InvoiceModel.__table__.columns}
+    assert {
+        "id", "invoice_number", "customer_id", "purchase_order_id", "issue_date",
+        "due_date", "status", "currency", "subtotal", "tax", "total",
+        "amount_paid", "balance", "created_at", "updated_at",
+    } <= columns
+
+
+def test_invoice_model_purchase_order_is_nullable() -> None:
+    column = InvoiceModel.__table__.columns["purchase_order_id"]
+    assert column.nullable is True
+
+
+def test_invoice_item_model_references_invoice_and_product() -> None:
+    fk_targets = {fk.target_fullname for fk in InvoiceItemModel.__table__.foreign_keys}
+    assert "finance.invoices.id" in fk_targets
+    assert "finance.products.id" in fk_targets
+
+
+def test_payment_model_references_invoice() -> None:
+    fk_targets = {fk.target_fullname for fk in PaymentModel.__table__.foreign_keys}
+    assert "finance.invoices.id" in fk_targets
+
+
+def test_expense_claim_model_references_employee() -> None:
+    fk_targets = {fk.target_fullname for fk in ExpenseClaimModel.__table__.foreign_keys}
+    assert "finance.employees.id" in fk_targets
