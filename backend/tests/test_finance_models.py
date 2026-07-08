@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from domains.finance.models import CustomerModel, ProductModel, VendorModel
+from domains.finance.models import (
+    CustomerModel,
+    DepartmentModel,
+    EmployeeModel,
+    ProductModel,
+    PurchaseOrderItemModel,
+    PurchaseOrderModel,
+    VendorModel,
+)
 
 
 def test_customer_model_uses_finance_schema() -> None:
@@ -29,3 +37,25 @@ def test_vendor_model_has_expected_columns() -> None:
 def test_product_model_has_expected_columns() -> None:
     columns = {c.name for c in ProductModel.__table__.columns}
     assert {"id", "sku", "name", "category", "unit_price", "is_active", "created_at"} <= columns
+
+
+def test_department_model_has_expected_columns() -> None:
+    columns = {c.name for c in DepartmentModel.__table__.columns}
+    assert {"id", "name", "created_at"} <= columns
+
+
+def test_employee_model_references_department() -> None:
+    fk_targets = {fk.target_fullname for fk in EmployeeModel.__table__.foreign_keys}
+    assert "finance.departments.id" in fk_targets
+
+
+def test_purchase_order_model_references_vendor_and_employee() -> None:
+    fk_targets = {fk.target_fullname for fk in PurchaseOrderModel.__table__.foreign_keys}
+    assert "finance.vendors.id" in fk_targets
+    assert "finance.employees.id" in fk_targets
+
+
+def test_purchase_order_item_model_references_po_and_product() -> None:
+    fk_targets = {fk.target_fullname for fk in PurchaseOrderItemModel.__table__.foreign_keys}
+    assert "finance.purchase_orders.id" in fk_targets
+    assert "finance.products.id" in fk_targets
