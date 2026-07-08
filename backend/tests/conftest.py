@@ -61,7 +61,11 @@ async def clean_db() -> AsyncIterator[None]:
         await conn.execute(
             text(
                 "TRUNCATE TABLE application.tool_executions, application.messages, "
-                "application.conversations, application.sessions CASCADE"
+                "application.conversations, application.sessions, "
+                "finance.payments, finance.invoice_items, finance.invoices, "
+                "finance.purchase_order_items, finance.purchase_orders, "
+                "finance.expense_claims, finance.employees, finance.departments, "
+                "finance.products, finance.customers, finance.vendors CASCADE"
             )
         )
     try:

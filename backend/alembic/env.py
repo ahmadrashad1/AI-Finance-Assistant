@@ -22,6 +22,7 @@ if config.config_file_name is not None:
 # Alembic runs.
 from ai_platform.memory import models as _memory_models  # noqa: E402,F401
 from ai_platform.tool_registry import models as _tool_registry_models  # noqa: E402,F401
+from domains.finance import models as _finance_models  # noqa: E402,F401
 
 target_metadata = Base.metadata
 
