@@ -13,6 +13,7 @@ from domains.finance.models import (
     CustomerModel,
     DepartmentModel,
     EmployeeModel,
+    ExpenseClaimModel,
     InvoiceItemModel,
     InvoiceModel,
     PaymentModel,
@@ -31,6 +32,7 @@ async def run_consistency_check(db: AsyncSession) -> list[str]:
     vendor_ids = set((await db.execute(select(VendorModel.id))).scalars().all())
     product_ids = set((await db.execute(select(ProductModel.id))).scalars().all())
     department_ids = set((await db.execute(select(DepartmentModel.id))).scalars().all())
+    employee_ids = set((await db.execute(select(EmployeeModel.id))).scalars().all())
     all_purchase_orders = (await db.execute(select(PurchaseOrderModel))).scalars().all()
     purchase_orders = {po.id: po for po in all_purchase_orders}
     invoices = list((await db.execute(select(InvoiceModel))).scalars().all())
@@ -55,6 +57,10 @@ async def run_consistency_check(db: AsyncSession) -> list[str]:
         if po.vendor_id not in vendor_ids:
             violations.append(
                 f"Purchase order {po.po_number} references missing vendor {po.vendor_id}"
+            )
+        if po.approved_by is not None and po.approved_by not in employee_ids:
+            violations.append(
+                f"Purchase order {po.po_number} references missing approver {po.approved_by}"
             )
 
     invoice_items = (await db.execute(select(InvoiceItemModel))).scalars().all()
@@ -86,6 +92,14 @@ async def run_consistency_check(db: AsyncSession) -> list[str]:
             violations.append(
                 f"Employee {employee.employee_code} references missing department "
                 f"{employee.department_id}"
+            )
+
+    expense_claims = (await db.execute(select(ExpenseClaimModel))).scalars().all()
+    for claim in expense_claims:
+        if claim.employee_id not in employee_ids:
+            violations.append(
+                f"Expense claim {claim.claim_number} references missing employee "
+                f"{claim.employee_id}"
             )
 
     payments = (await db.execute(select(PaymentModel))).scalars().all()
