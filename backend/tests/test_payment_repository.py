@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -94,3 +95,20 @@ async def test_list_by_invoice_returns_all_payments(
     payments = await repo.list_by_invoice(invoice.id)
     assert len(payments) == 2
     assert invoice.status == "paid"
+
+
+@pytest.mark.asyncio
+async def test_record_payment_raises_for_nonexistent_invoice(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    repo = PaymentRepository(db_session)
+    nonexistent_invoice_id = uuid.uuid4()
+
+    with pytest.raises(ValueError, match=f"Invoice {nonexistent_invoice_id} does not exist"):
+        await repo.record_payment(
+            invoice_id=nonexistent_invoice_id,
+            payment_date=date(2026, 6, 1),
+            amount=Decimal("100.00"),
+            payment_method="check",
+            today=date(2026, 7, 8),
+        )
