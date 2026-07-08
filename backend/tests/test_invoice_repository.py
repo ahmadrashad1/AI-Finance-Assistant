@@ -88,6 +88,30 @@ async def test_list_overdue_filters_by_status_and_due_date(
     assert [i.invoice_number for i in overdue] == ["INV-7003"]
 
 
+@pytest.mark.asyncio
+async def test_list_overdue_and_semantics_due_date_future(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """Verify that list_overdue uses AND logic: status=overdue AND due_date < as_of.
+
+    This test proves that status=overdue with a future due_date is excluded from results,
+    demonstrating the query requires BOTH conditions to be true, not just status.
+    """
+    customer = await _make_customer(db_session)
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7005", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 6, 1), due_date=date(2026, 8, 15), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    # Query as_of 2026-07-08, which is BEFORE the due_date of 2026-08-15
+    # Even though status is "overdue", it should NOT be in the result
+    overdue = await repo.list_overdue(as_of=date(2026, 7, 8))
+    assert [i.invoice_number for i in overdue] == []
+
+
 def test_compute_invoice_status_priority_rule() -> None:
     common = {"total": Decimal("100"), "due_date": date(2026, 1, 1), "as_of": date(2026, 7, 8)}
     assert (
@@ -116,4 +140,12 @@ def test_compute_invoice_status_priority_rule() -> None:
     assert (
         compute_invoice_status(amount_paid=Decimal("0"), current_status="sent", **not_yet_due)
         == "sent"
+    )
+    # Boundary: due_date == as_of is NOT yet overdue (strict less-than rule)
+    equal_date = {
+        "total": Decimal("100"), "due_date": date(2026, 7, 8), "as_of": date(2026, 7, 8)
+    }
+    assert (
+        compute_invoice_status(amount_paid=Decimal("40"), current_status="sent", **equal_date)
+        == "partially_paid"
     )
