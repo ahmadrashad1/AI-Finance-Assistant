@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from ai_platform.tool_registry.registry import DuplicateToolError, ToolRegistry, ToolSpec
+from ai_platform.tool_registry.registry import (
+    DuplicateToolError,
+    ToolContext,
+    ToolRegistry,
+    ToolSpec,
+)
 
 
 class _Params(BaseModel):
@@ -14,7 +19,7 @@ class _Result(BaseModel):
     doubled: int
 
 
-async def _handler(params: _Params) -> _Result:
+async def _handler(params: _Params, context: ToolContext) -> _Result:
     return _Result(doubled=params.value * 2)
 
 

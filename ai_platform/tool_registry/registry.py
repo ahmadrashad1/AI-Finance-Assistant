@@ -5,6 +5,22 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+@dataclass(frozen=True)
+class ToolContext:
+    """Per-call context passed to every tool handler alongside its params.
+
+    Handlers that need the database (most finance tools) build their own
+    repositories/services from `context.db`; handlers with no I/O
+    dependency (e.g. `get_current_date`) simply ignore it. This keeps
+    `ToolRegistry` itself DB-free and buildable once at startup (ADR-0004's
+    fail-fast requirement) while still giving DB-backed tools a live,
+    request-scoped session at call time.
+    """
+
+    db: AsyncSession
 
 
 @dataclass(frozen=True)
@@ -20,7 +36,7 @@ class ToolSpec:
     description: str
     parameters_model: type[BaseModel]
     result_model: type[BaseModel]
-    handler: Callable[[Any], Awaitable[BaseModel]]
+    handler: Callable[[Any, ToolContext], Awaitable[BaseModel]]
 
 
 class DuplicateToolError(ValueError):

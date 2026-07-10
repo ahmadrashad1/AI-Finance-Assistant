@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ai_platform.tool_registry.registry import ToolContext
 from ai_platform.tool_registry.tools.get_current_date import (
     GET_CURRENT_DATE_TOOL,
     GetCurrentDateParams,
@@ -11,8 +13,8 @@ from ai_platform.tool_registry.tools.get_current_date import (
 
 
 @pytest.mark.asyncio
-async def test_handler_returns_iso_date_and_day_of_week() -> None:
-    result = await get_current_date_handler(GetCurrentDateParams())
+async def test_handler_returns_iso_date_and_day_of_week(db_session: AsyncSession) -> None:
+    result = await get_current_date_handler(GetCurrentDateParams(), ToolContext(db=db_session))
     assert len(result.date) == 10
     assert result.date[4] == "-"
     assert result.date[7] == "-"

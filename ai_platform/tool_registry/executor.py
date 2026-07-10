@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_platform.tool_registry.registry import ToolRegistry
+from ai_platform.tool_registry.registry import ToolContext, ToolRegistry
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 from ai_platform.tool_registry.result_validator import ResultValidationError, validate_result
 
@@ -27,10 +28,14 @@ class ToolExecutionOutcome:
 
 class ToolExecutor:
     def __init__(
-        self, registry: ToolRegistry, execution_repository: ToolExecutionRepository
+        self,
+        registry: ToolRegistry,
+        execution_repository: ToolExecutionRepository,
+        db: AsyncSession,
     ) -> None:
         self._registry = registry
         self._execution_repository = execution_repository
+        self._db = db
 
     async def execute(
         self,
@@ -57,7 +62,8 @@ class ToolExecutor:
                 error_message = f"Invalid parameters for tool '{tool}': {exc}"
             else:
                 try:
-                    raw_result = await spec.handler(validated_params)
+                    context = ToolContext(db=self._db)
+                    raw_result = await spec.handler(validated_params, context)
                 except Exception as exc:
                     status = "error"
                     error_message = f"Tool '{tool}' failed: {exc}"

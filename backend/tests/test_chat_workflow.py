@@ -26,7 +26,7 @@ def _make_workflow(
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
     execution_repository = ToolExecutionRepository(db_session)
-    tool_executor = ToolExecutor(registry, execution_repository)
+    tool_executor = ToolExecutor(registry, execution_repository, db_session)
     prompt_builder = PromptBuilder()
     planner = Planner(llm_service, registry, prompt_builder)
     workflow = ChatWorkflow(

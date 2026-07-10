@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from ai_platform.tool_registry.registry import ToolSpec
+from ai_platform.tool_registry.registry import ToolContext, ToolSpec
 from ai_platform.tool_registry.result_validator import ResultValidationError, validate_result
 
 
@@ -15,7 +15,7 @@ class _Result(BaseModel):
     value: int
 
 
-async def _handler(params: _Params) -> _Result:
+async def _handler(params: _Params, context: ToolContext) -> _Result:
     return _Result(value=1)
 
 

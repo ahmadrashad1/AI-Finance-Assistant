@@ -77,7 +77,7 @@ async def post_chat(
     memory = ConversationMemory(repository)
     prompt_builder = PromptBuilder()
     execution_repository = ToolExecutionRepository(db)
-    tool_executor = ToolExecutor(tool_registry, execution_repository)
+    tool_executor = ToolExecutor(tool_registry, execution_repository, db)
     planner = Planner(llm_service, tool_registry, prompt_builder)
     workflow = ChatWorkflow(
         repository=repository,

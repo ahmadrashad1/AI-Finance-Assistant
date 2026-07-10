@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from ai_platform.tool_registry.registry import ToolSpec
+from ai_platform.tool_registry.registry import ToolContext, ToolSpec
 
 
 class GetCurrentDateParams(BaseModel):
@@ -16,7 +16,9 @@ class GetCurrentDateResult(BaseModel):
     day_of_week: str
 
 
-async def get_current_date_handler(params: GetCurrentDateParams) -> GetCurrentDateResult:
+async def get_current_date_handler(
+    params: GetCurrentDateParams, context: ToolContext
+) -> GetCurrentDateResult:
     now = datetime.now(UTC)
     return GetCurrentDateResult(date=now.date().isoformat(), day_of_week=now.strftime("%A"))
 

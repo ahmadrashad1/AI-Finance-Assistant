@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.tool_registry.executor import ToolExecutor
-from ai_platform.tool_registry.registry import ToolRegistry, ToolSpec
+from ai_platform.tool_registry.registry import ToolContext, ToolRegistry, ToolSpec
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 
 
@@ -20,7 +20,7 @@ class _OkResult(BaseModel):
     doubled: int
 
 
-async def _ok_handler(params: _OkParams) -> _OkResult:
+async def _ok_handler(params: _OkParams, context: ToolContext) -> _OkResult:
     return _OkResult(doubled=params.value * 2)
 
 
@@ -28,7 +28,7 @@ class _BrokenResult(BaseModel):
     required_field: str
 
 
-async def _crashing_handler(params: _OkParams) -> _OkResult:
+async def _crashing_handler(params: _OkParams, context: ToolContext) -> _OkResult:
     raise RuntimeError("boom")
 
 
@@ -54,7 +54,7 @@ async def test_execute_records_success(clean_db: None, db_session: AsyncSession)
         )
     )
     execution_repo = ToolExecutionRepository(db_session)
-    executor = ToolExecutor(registry, execution_repo)
+    executor = ToolExecutor(registry, execution_repo, db_session)
 
     outcome = await executor.execute(
         request_id="req-1",
@@ -81,7 +81,7 @@ async def test_execute_records_unknown_tool_as_error(
     conversation_id = await _make_conversation(db_session, "session-exec-2")
     registry = ToolRegistry()
     execution_repo = ToolExecutionRepository(db_session)
-    executor = ToolExecutor(registry, execution_repo)
+    executor = ToolExecutor(registry, execution_repo, db_session)
 
     outcome = await executor.execute(
         request_id="req-2", conversation_id=conversation_id, tool="does_not_exist", parameters={}
@@ -112,7 +112,7 @@ async def test_execute_records_invalid_parameters_as_error(
         )
     )
     execution_repo = ToolExecutionRepository(db_session)
-    executor = ToolExecutor(registry, execution_repo)
+    executor = ToolExecutor(registry, execution_repo, db_session)
 
     outcome = await executor.execute(
         request_id="req-3",
@@ -142,7 +142,7 @@ async def test_execute_records_handler_exception_as_error(
         )
     )
     execution_repo = ToolExecutionRepository(db_session)
-    executor = ToolExecutor(registry, execution_repo)
+    executor = ToolExecutor(registry, execution_repo, db_session)
 
     outcome = await executor.execute(
         request_id="req-4", conversation_id=conversation_id, tool="crasher", parameters={}
@@ -169,7 +169,7 @@ async def test_execute_records_result_validation_failure_as_error(
         )
     )
     execution_repo = ToolExecutionRepository(db_session)
-    executor = ToolExecutor(registry, execution_repo)
+    executor = ToolExecutor(registry, execution_repo, db_session)
 
     outcome = await executor.execute(
         request_id="req-5", conversation_id=conversation_id, tool="mismatched", parameters={}
