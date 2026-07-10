@@ -22,6 +22,7 @@ from ai_platform.tool_registry.executor import ToolExecutor
 from ai_platform.tool_registry.registry import ToolRegistry
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
+from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
 from tests.fakes import FakeLLMService
 
 
@@ -29,6 +30,7 @@ def _make_workflow(db_session: AsyncSession, llm_service: FakeLLMService) -> Cha
     repository = ConversationRepository(db_session)
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
+    registry.register(GET_UNPAID_INVOICES_TOOL)
     execution_repository = ToolExecutionRepository(db_session)
     tool_executor = ToolExecutor(registry, execution_repository, db_session)
     prompt_builder = PromptBuilder()
@@ -178,3 +180,38 @@ async def test_eval_ambiguous_request_can_short_circuit_with_clarification(
     assert [e.type for e in events] == ["token", "done"]
     assert events[0].content == "Which invoices do you mean?"
     assert uuid.UUID(events[1].conversation_id or "")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "phrasing",
+    [
+        "Show unpaid invoices",
+        "Which invoices haven't been paid?",
+        "Outstanding invoices?",
+        "Who still owes us money?",
+        "Customers with overdue invoices",
+    ],
+)
+async def test_eval_unpaid_invoice_phrasings_all_select_get_unpaid_invoices(
+    clean_db: None, db_session: AsyncSession, phrasing: str
+) -> None:
+    """Milestone 5 acceptance: every natural-language phrasing for 'who
+    owes us money' must plan get_unpaid_invoices - proves intent routing
+    lives in the LLM/prompt layer, not in keyword-matching code."""
+    llm_service = FakeLLMService(
+        tokens=["Here are the unpaid invoices."],
+        plan_response='{"tool_calls": [{"tool": "get_unpaid_invoices", "parameters": {}}]}',
+    )
+    workflow = _make_workflow(db_session, llm_service)
+
+    events = [
+        e
+        async for e in workflow.run(
+            ChatRequest(session_id=f"eval-unpaid-{phrasing}", message=phrasing)
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["get_unpaid_invoices"]

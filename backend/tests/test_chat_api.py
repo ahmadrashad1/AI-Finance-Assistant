@@ -139,3 +139,78 @@ async def test_post_chat_tool_call_returns_tool_call_event_and_persists_executio
     assert len(rows) == 1
     assert rows[0].tool == "get_current_date"
     assert rows[0].status == "success"
+
+
+@pytest.mark.asyncio
+async def test_post_chat_unpaid_invoices_tool_call_logs_execution(clean_db: None) -> None:
+    from datetime import date
+    from decimal import Decimal
+
+    from app.db.session import get_sessionmaker
+    from domains.finance.repositories.customer_repository import CustomerRepository
+    from domains.finance.repositories.invoice_repository import InvoiceRepository
+
+    async with get_sessionmaker()() as setup_session:
+        customer_repo = CustomerRepository(setup_session)
+        customer = await customer_repo.create(
+            customer_code="CUST-9001",
+            company_name="Acme Testing Ltd.",
+            industry="Testing",
+            contact_name="A",
+            contact_email="a@example.com",
+            payment_terms="net_30",
+            credit_limit=Decimal("5000.00"),
+        )
+        invoice_repo = InvoiceRepository(setup_session)
+        await invoice_repo.create(
+            invoice_number="INV-9001",
+            customer_id=customer.id,
+            purchase_order_id=None,
+            issue_date=date(2026, 6, 1),
+            due_date=date(2026, 6, 15),
+            status="overdue",
+            subtotal=Decimal("900.00"),
+            tax=Decimal("100.00"),
+            total=Decimal("1000.00"),
+        )
+        await setup_session.commit()
+
+    app.dependency_overrides[get_llm_service] = lambda: FakeLLMService(
+        tokens=["You have one unpaid invoice."],
+        plan_response='{"tool_calls": [{"tool": "get_unpaid_invoices", "parameters": {}}]}',
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/chat",
+                json={"session_id": "api-session-5", "message": "Who still owes us money?"},
+            )
+        assert response.status_code == 200
+        events = _parse_sse(response.text)
+
+        tool_call_events = [e for e in events if e["type"] == "tool_call"]
+        assert [e["tool"] for e in tool_call_events] == ["get_unpaid_invoices"]
+
+        done_events = [e for e in events if e["type"] == "done"]
+        conversation_id = uuid.UUID(done_events[0]["conversation_id"])
+    finally:
+        app.dependency_overrides.pop(get_llm_service, None)
+
+    from sqlalchemy import text
+
+    async with get_sessionmaker()() as session:
+        result = await session.execute(
+            text(
+                "SELECT tool, status, result FROM application.tool_executions "
+                "WHERE conversation_id = :conversation_id"
+            ),
+            {"conversation_id": conversation_id},
+        )
+        rows = result.all()
+
+    assert len(rows) == 1
+    assert rows[0].tool == "get_unpaid_invoices"
+    assert rows[0].status == "success"
+    assert rows[0].result["summary"]["count"] == 1
+    assert rows[0].result["invoices"][0]["invoice_number"] == "INV-9001"
