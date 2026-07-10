@@ -18,4 +18,4 @@ def validate_result(spec: ToolSpec, raw_result: dict[str, Any]) -> dict[str, Any
         raise ResultValidationError(
             f"Tool '{spec.name}' returned a result that doesn't match its declared schema: {exc}"
         ) from exc
-    return validated.model_dump()
+    return validated.model_dump(mode="json")
