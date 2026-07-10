@@ -10,5 +10,7 @@ One Python function per business capability (e.g. `get_unpaid_invoices()`,
 - never execute SQL and never call other tools directly (composition is the
   orchestration engine's job, not the tool layer's).
 
-No application logic lives here yet — this is a placeholder for Milestone 3+
-(see the PRD's development roadmap).
+`get_unpaid_invoices` (Milestone 5) is the first implementation: it
+validates its own parameters, calls `InvoiceService`, and returns
+`{invoices: [...], summary: {count, total_outstanding}}`. It never touches
+SQL and never calls another tool.
