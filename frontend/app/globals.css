@@ -17,3 +17,16 @@ main {
   margin: 4rem auto;
   padding: 0 1.5rem;
 }
+
+table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  border: 1px solid currentColor;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
