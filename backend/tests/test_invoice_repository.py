@@ -112,6 +112,73 @@ async def test_list_overdue_and_semantics_due_date_future(
     assert [i.invoice_number for i in overdue] == []
 
 
+@pytest.mark.asyncio
+async def test_list_by_statuses_filters_by_status_set(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7101")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7101", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await repo.create(
+        invoice_number="INV-7102", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="paid",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await repo.list_by_statuses(statuses=("sent", "overdue"))
+    assert [i.invoice_number for i in results] == ["INV-7101"]
+
+
+@pytest.mark.asyncio
+async def test_list_by_statuses_filters_by_customer_id(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    acme = await _make_customer(db_session, "CUST-7201")
+    globex = await _make_customer(db_session, "CUST-7202")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7201", customer_id=acme.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await repo.create(
+        invoice_number="INV-7202", customer_id=globex.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await repo.list_by_statuses(statuses=("sent",), customer_id=acme.id)
+    assert [i.invoice_number for i in results] == ["INV-7201"]
+
+
+@pytest.mark.asyncio
+async def test_list_by_statuses_filters_by_minimum_balance(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7301")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7301", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("50"), tax=Decimal("0"), total=Decimal("50"),
+    )
+    await repo.create(
+        invoice_number="INV-7302", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    await db_session.commit()
+
+    results = await repo.list_by_statuses(statuses=("sent",), minimum_balance=Decimal("100"))
+    assert [i.invoice_number for i in results] == ["INV-7302"]
+
+
 def test_compute_invoice_status_priority_rule() -> None:
     common = {"total": Decimal("100"), "due_date": date(2026, 1, 1), "as_of": date(2026, 7, 8)}
     assert (

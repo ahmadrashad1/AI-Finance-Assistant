@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import ColumnElement
 
 from domains.finance.models import InvoiceModel
 
@@ -98,5 +100,21 @@ class InvoiceRepository:
             .where(InvoiceModel.status == "overdue", InvoiceModel.due_date < as_of)
             .order_by(InvoiceModel.due_date)
         )
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_by_statuses(
+        self,
+        *,
+        statuses: Sequence[str],
+        customer_id: uuid.UUID | None = None,
+        minimum_balance: Decimal | None = None,
+    ) -> list[InvoiceModel]:
+        conditions: list[ColumnElement[bool]] = [InvoiceModel.status.in_(statuses)]
+        if customer_id is not None:
+            conditions.append(InvoiceModel.customer_id == customer_id)
+        if minimum_balance is not None:
+            conditions.append(InvoiceModel.balance >= minimum_balance)
+        stmt = select(InvoiceModel).where(*conditions).order_by(InvoiceModel.due_date)
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
