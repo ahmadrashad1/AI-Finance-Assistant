@@ -1,20 +1,27 @@
 """Versioned system prompt for the Phase 1 planner.
 
-Version: 1.0.0
+Version: 1.1.0
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-07): Initial version. Three-branch planning contract
     (clarification_needed / tool_calls / direct_answer) for Milestone 3's
     two-phase pipeline.
+  - 1.1.0 (2026-07-10): Add a paraphrase-invariance rule with a worked
+    accounts-receivable example, now that Milestone 5 ships the first
+    data-retrieval tool (get_unpaid_invoices) alongside get_current_date -
+    reinforces that intent-to-tool mapping is the model's job, never
+    keyword matching in code.
 """
 
 from __future__ import annotations
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-07): Initial version - three-branch planning contract "
     "(clarification_needed / tool_calls / direct_answer).",
+    "1.1.0 (2026-07-10): Add a paraphrase-invariance rule with a worked "
+    "accounts-receivable example (get_unpaid_invoices).",
 ]
 
 PLANNING_SYSTEM_PROMPT_TEMPLATE = (
@@ -39,6 +46,12 @@ PLANNING_SYSTEM_PROMPT_TEMPLATE = (
     "never leave all three empty.\n"
     "- Only use tool names and parameters from the tool list above. "
     "Never invent a tool.\n"
+    "- Match tool selection to business intent, not literal wording - many "
+    "different phrasings describe the same request and must select the "
+    "same tool. For example, 'Show unpaid invoices', 'Which invoices "
+    "haven't been paid?', 'Outstanding invoices?', 'Who still owes us "
+    "money?', and 'Customers with overdue invoices' all describe the same "
+    "retrieval capability, even though none of the words match each other.\n"
     "- Output ONLY the JSON object. No explanation, no markdown fences, "
     "no extra text.\n"
 )
