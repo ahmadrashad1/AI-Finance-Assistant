@@ -14,11 +14,14 @@ from domains.finance.models import (
     PaymentModel,
     ProductModel,
     PurchaseOrderModel,
+    VendorInvoiceModel,
     VendorModel,
+    VendorPaymentModel,
 )
 from domains.finance.simulator.generator import SimulatorSeeder
 
 FINANCE_TABLES = (
+    "finance.vendor_payments", "finance.vendor_invoices",
     "finance.payments", "finance.invoice_items", "finance.invoices",
     "finance.purchase_order_items", "finance.purchase_orders", "finance.expense_claims",
     "finance.employees", "finance.departments", "finance.products",
@@ -31,6 +34,7 @@ async def _snapshot(db_session: AsyncSession) -> dict[str, object]:
     for model in (
         CustomerModel, VendorModel, ProductModel, EmployeeModel,
         PurchaseOrderModel, InvoiceModel, PaymentModel, ExpenseClaimModel,
+        VendorInvoiceModel, VendorPaymentModel,
     ):
         counts[model.__tablename__] = (
             await db_session.execute(select(func.count()).select_from(model))

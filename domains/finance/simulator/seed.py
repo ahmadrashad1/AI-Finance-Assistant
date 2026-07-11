@@ -11,6 +11,8 @@ from domains.finance.simulator.constants import DEFAULT_SEED
 from domains.finance.simulator.generator import SimulatorSeeder
 
 FINANCE_TABLES = (
+    "finance.vendor_payments",
+    "finance.vendor_invoices",
     "finance.payments",
     "finance.invoice_items",
     "finance.invoices",

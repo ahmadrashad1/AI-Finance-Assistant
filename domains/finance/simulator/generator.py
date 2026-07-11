@@ -18,6 +18,7 @@ from domains.finance.models import (
     ProductModel,
     PurchaseOrderItemModel,
     PurchaseOrderModel,
+    VendorInvoiceModel,
     VendorModel,
 )
 from domains.finance.repositories.customer_repository import CustomerRepository
@@ -27,6 +28,11 @@ from domains.finance.repositories.invoice_repository import (
 )
 from domains.finance.repositories.payment_repository import PaymentRepository
 from domains.finance.repositories.purchase_order_repository import PurchaseOrderRepository
+from domains.finance.repositories.vendor_invoice_repository import (
+    VendorInvoiceRepository,
+    compute_vendor_invoice_status,
+)
+from domains.finance.repositories.vendor_payment_repository import VendorPaymentRepository
 from domains.finance.repositories.vendor_repository import VendorRepository
 from domains.finance.simulator.constants import (
     BEHAVIOR_DAYS_OFFSET,
@@ -40,12 +46,14 @@ from domains.finance.simulator.constants import (
     NUM_EXPENSE_CLAIMS_PER_EMPLOYEE,
     NUM_INVOICES,
     NUM_PURCHASE_ORDERS,
+    NUM_VENDOR_INVOICES,
     NUM_VENDORS,
     PAYMENT_COVERAGE,
     PAYMENT_METHODS,
     PAYMENT_TERMS,
     PAYMENT_TERMS_DAYS,
     SIMULATION_TODAY,
+    VENDOR_PAYMENT_COVERAGE,
 )
 from domains.finance.simulator.data import (
     COMPANY_PREFIXES,
@@ -72,6 +80,8 @@ class SimulatorSeeder:
         self._purchase_orders = PurchaseOrderRepository(db)
         self._invoices = InvoiceRepository(db)
         self._payments = PaymentRepository(db)
+        self._vendor_invoices = VendorInvoiceRepository(db)
+        self._vendor_payments = VendorPaymentRepository(db)
 
     async def _seed_departments(self) -> list[DepartmentModel]:
         departments = []
@@ -172,6 +182,8 @@ class SimulatorSeeder:
         invoices = await self._seed_invoices(customers, purchase_orders, products)
         await self._seed_duplicate_invoices(invoices)
         await self._seed_payments(invoices, behavior_by_customer)
+        vendor_invoices = await self._seed_vendor_invoices(vendors, purchase_orders)
+        await self._seed_vendor_payments(vendor_invoices)
         await self._seed_expense_claims(employees)
         await self._db.flush()
 
@@ -358,6 +370,69 @@ class SimulatorSeeder:
                 amount=amount,
                 payment_method=self._rng.choice(PAYMENT_METHODS),
                 reference_number=f"PMT-{uuid.uuid4().hex[:10].upper()}",
+                today=SIMULATION_TODAY,
+            )
+
+    async def _seed_vendor_invoices(
+        self,
+        vendors: list[VendorModel],
+        purchase_orders: list[PurchaseOrderModel],
+    ) -> list[VendorInvoiceModel]:
+        vendors_by_id = {vendor.id: vendor for vendor in vendors}
+        eligible_pos = [po for po in purchase_orders if po.status in ("approved", "received")]
+        sample_size = min(NUM_VENDOR_INVOICES, len(eligible_pos))
+        chosen_pos = self._rng.sample(eligible_pos, k=sample_size)
+
+        vendor_invoices = []
+        for i, po in enumerate(chosen_pos, start=1):
+            vendor = vendors_by_id[po.vendor_id]
+            issue_date = po.order_date + timedelta(days=self._rng.randint(1, 5))
+            due_date = issue_date + timedelta(days=PAYMENT_TERMS_DAYS[vendor.payment_terms])
+            status = compute_vendor_invoice_status(
+                total=po.total_amount,
+                amount_paid=Decimal("0"),
+                due_date=due_date,
+                as_of=SIMULATION_TODAY,
+                current_status="sent",
+            )
+            invoice = await self._vendor_invoices.create(
+                vendor_invoice_number=f"VINV-{4000 + i}",
+                vendor_id=vendor.id,
+                purchase_order_id=po.id,
+                issue_date=issue_date,
+                due_date=due_date,
+                status=status,
+                subtotal=po.total_amount,
+                tax=Decimal("0"),
+                total=po.total_amount,
+            )
+            vendor_invoices.append(invoice)
+        await self._db.flush()
+        return vendor_invoices
+
+    async def _seed_vendor_payments(self, vendor_invoices: list[VendorInvoiceModel]) -> None:
+        payable = [invoice for invoice in vendor_invoices if invoice.status != "cancelled"]
+        target_count = int(len(payable) * VENDOR_PAYMENT_COVERAGE)
+        paid_candidates = self._rng.sample(payable, k=min(target_count, len(payable)))
+        for invoice in paid_candidates:
+            low, high = -5, 20
+            payment_date = invoice.due_date + timedelta(days=self._rng.randint(low, high))
+            if payment_date > SIMULATION_TODAY:
+                payment_date = SIMULATION_TODAY
+            full_payment = self._rng.random() < 0.8
+            amount = (
+                invoice.total
+                if full_payment
+                else (invoice.total * Decimal(self._rng.choice(["0.3", "0.5", "0.7"]))).quantize(
+                    Decimal("0.01")
+                )
+            )
+            await self._vendor_payments.record_payment(
+                vendor_invoice_id=invoice.id,
+                payment_date=payment_date,
+                amount=amount,
+                payment_method=self._rng.choice(PAYMENT_METHODS),
+                reference_number=f"VPMT-{uuid.uuid4().hex[:10].upper()}",
                 today=SIMULATION_TODAY,
             )
 
