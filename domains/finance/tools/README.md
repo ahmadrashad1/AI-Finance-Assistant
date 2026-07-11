@@ -18,3 +18,8 @@ SQL and never calls another tool.
 `search_invoices` (Milestone 6) is a flexible filter search: it validates
 its own parameters, calls `InvoiceService.search_invoices`, and returns
 `{invoices: [...], summary: {count, total_amount}}`.
+
+`get_overdue_invoices` (Milestone 6) returns invoices with status
+'overdue' specifically, sorted by days overdue (most urgent first); it
+calls `InvoiceService.get_overdue_invoices` and returns `{invoices: [...],
+summary: {count, total_outstanding}}`.
