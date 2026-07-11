@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.finance.models import VendorModel
@@ -44,6 +44,13 @@ class VendorRepository:
 
     async def get_by_code(self, vendor_code: str) -> VendorModel | None:
         stmt = select(VendorModel).where(VendorModel.vendor_code == vendor_code)
+        result = await self._db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_name(self, company_name: str) -> VendorModel | None:
+        stmt = select(VendorModel).where(
+            func.lower(VendorModel.company_name) == company_name.lower()
+        )
         result = await self._db.execute(stmt)
         return result.scalar_one_or_none()
 

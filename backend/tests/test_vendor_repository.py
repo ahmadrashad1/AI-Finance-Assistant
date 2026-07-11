@@ -63,3 +63,20 @@ async def test_list_all_orders_by_vendor_code(clean_db: None, db_session: AsyncS
 
     vendors = await repo.list_all()
     assert [v.vendor_code for v in vendors] == ["VEND-0001", "VEND-0002"]
+
+
+@pytest.mark.asyncio
+async def test_get_by_name_is_case_insensitive_and_returns_none_when_missing(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    repo = VendorRepository(db_session)
+    await repo.create(
+        vendor_code="VEND-0003", company_name="Summit Traders", category="raw_materials",
+        contact_name="A", contact_email="a@example.com", payment_terms="net_30",
+    )
+    await db_session.commit()
+
+    fetched = await repo.get_by_name("summit traders")
+    assert fetched is not None
+    assert fetched.vendor_code == "VEND-0003"
+    assert await repo.get_by_name("Does Not Exist Traders") is None

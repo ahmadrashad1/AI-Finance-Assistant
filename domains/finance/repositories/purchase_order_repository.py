@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import ColumnElement
 
 from domains.finance.models import PurchaseOrderModel
 
@@ -52,6 +54,18 @@ class PurchaseOrderRepository:
             select(PurchaseOrderModel)
             .where(PurchaseOrderModel.vendor_id == vendor_id)
             .order_by(PurchaseOrderModel.order_date)
+        )
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_by_statuses(
+        self, *, statuses: Sequence[str], vendor_id: uuid.UUID | None = None
+    ) -> list[PurchaseOrderModel]:
+        conditions: list[ColumnElement[bool]] = [PurchaseOrderModel.status.in_(statuses)]
+        if vendor_id is not None:
+            conditions.append(PurchaseOrderModel.vendor_id == vendor_id)
+        stmt = (
+            select(PurchaseOrderModel).where(*conditions).order_by(PurchaseOrderModel.order_date)
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
