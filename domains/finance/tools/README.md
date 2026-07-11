@@ -14,3 +14,7 @@ One Python function per business capability (e.g. `get_unpaid_invoices()`,
 validates its own parameters, calls `InvoiceService`, and returns
 `{invoices: [...], summary: {count, total_outstanding}}`. It never touches
 SQL and never calls another tool.
+
+`search_invoices` (Milestone 6) is a flexible filter search: it validates
+its own parameters, calls `InvoiceService.search_invoices`, and returns
+`{invoices: [...], summary: {count, total_amount}}`.
