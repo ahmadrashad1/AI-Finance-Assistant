@@ -214,3 +214,45 @@ async def test_post_chat_unpaid_invoices_tool_call_logs_execution(clean_db: None
     assert rows[0].status == "success"
     assert rows[0].result["summary"]["count"] == 1
     assert rows[0].result["invoices"][0]["invoice_number"] == "INV-9001"
+
+
+@pytest.mark.asyncio
+async def test_tool_execution_row_survives_a_phase_two_failure(clean_db: None) -> None:
+    app.dependency_overrides[get_llm_service] = lambda: FakeLLMService(
+        tokens=["should not be reached"],
+        plan_response='{"tool_calls": [{"tool": "get_current_date", "parameters": {}}]}',
+        fail_stream_with=RuntimeError("simulated Phase-2 failure (e.g. 413 payload too large)"),
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/chat",
+                json={"session_id": "api-session-durability", "message": "What's today's date?"},
+            )
+        assert response.status_code == 200
+        events = _parse_sse(response.text)
+        error_events = [e for e in events if e["type"] == "error"]
+        assert len(error_events) == 1
+        tool_call_events = [e for e in events if e["type"] == "tool_call"]
+        assert [e["tool"] for e in tool_call_events] == ["get_current_date"]
+    finally:
+        app.dependency_overrides.pop(get_llm_service, None)
+
+    from sqlalchemy import text
+
+    from app.db.session import get_sessionmaker
+
+    async with get_sessionmaker()() as session:
+        result = await session.execute(
+            text(
+                "SELECT tool, status FROM application.tool_executions "
+                "WHERE tool = 'get_current_date' AND status = 'success' "
+                "ORDER BY created_at DESC LIMIT 1"
+            )
+        )
+        row = result.first()
+
+    assert row is not None
+    assert row.tool == "get_current_date"
+    assert row.status == "success"

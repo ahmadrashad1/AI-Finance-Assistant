@@ -178,3 +178,40 @@ async def test_execute_records_result_validation_failure_as_error(
 
     assert outcome.status == "error"
     assert outcome.result is None
+
+
+@pytest.mark.asyncio
+async def test_execution_row_is_committed_immediately_inside_execute(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    from app.db.session import get_sessionmaker
+
+    conversation_id = await _make_conversation(db_session, "session-exec-audit")
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="double_it",
+            description="Doubles a number.",
+            parameters_model=_OkParams,
+            result_model=_OkResult,
+            handler=_ok_handler,
+        )
+    )
+    execution_repo = ToolExecutionRepository(db_session)
+    executor = ToolExecutor(registry, execution_repo, db_session)
+
+    outcome = await executor.execute(
+        request_id="req-audit-1",
+        conversation_id=conversation_id,
+        tool="double_it",
+        parameters={"value": 5},
+    )
+    assert outcome.status == "success"
+
+    # No explicit db_session.commit() here - a genuinely separate
+    # connection can only see this row if execute() committed internally.
+    async with get_sessionmaker()() as verify_db:
+        verify_repo = ToolExecutionRepository(verify_db)
+        rows = await verify_repo.list_for_conversation(conversation_id)
+        assert len(rows) == 1
+        assert rows[0].status == "success"

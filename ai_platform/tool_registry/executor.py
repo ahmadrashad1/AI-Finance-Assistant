@@ -86,6 +86,7 @@ class ToolExecutor:
             status=status,
             error_message=error_message,
         )
+        await self._db.commit()
         logger.info(
             "tool execution complete: tool=%s status=%s duration_ms=%d", tool, status, duration_ms
         )

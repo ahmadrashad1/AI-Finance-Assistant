@@ -9,9 +9,15 @@ class FakeLLMService:
     history) without hitting a real LLM provider.
     """
 
-    def __init__(self, tokens: list[str], plan_response: str = '{"direct_answer": true}') -> None:
+    def __init__(
+        self,
+        tokens: list[str],
+        plan_response: str = '{"direct_answer": true}',
+        fail_stream_with: Exception | None = None,
+    ) -> None:
         self._tokens = tokens
         self._plan_response = plan_response
+        self._fail_stream_with = fail_stream_with
         self.last_system: str | None = None
         self.last_history: list[dict[str, str]] | None = None
         self.last_message: str | None = None
@@ -25,6 +31,8 @@ class FakeLLMService:
         self.last_system = system
         self.last_history = history
         self.last_message = message
+        if self._fail_stream_with is not None:
+            raise self._fail_stream_with
         for token in self._tokens:
             yield token
 
