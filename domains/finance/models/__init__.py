@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from domains.finance.models.billing import InvoiceItemModel, InvoiceModel, PaymentModel
+from domains.finance.models.cash import BankAccountModel, CashTransactionModel
 from domains.finance.models.catalog import ProductModel
 from domains.finance.models.expenses import ExpenseClaimModel
 from domains.finance.models.organizations import CustomerModel, VendorModel
@@ -22,4 +23,6 @@ __all__ = [
     "ExpenseClaimModel",
     "VendorInvoiceModel",
     "VendorPaymentModel",
+    "BankAccountModel",
+    "CashTransactionModel",
 ]
