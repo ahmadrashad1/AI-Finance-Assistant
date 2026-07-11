@@ -118,3 +118,33 @@ class InvoiceRepository:
         stmt = select(InvoiceModel).where(*conditions).order_by(InvoiceModel.due_date)
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
+
+    async def search(
+        self,
+        *,
+        invoice_number: str | None = None,
+        customer_id: uuid.UUID | None = None,
+        status: str | None = None,
+        minimum_amount: Decimal | None = None,
+        maximum_amount: Decimal | None = None,
+        due_before: date | None = None,
+        due_after: date | None = None,
+    ) -> list[InvoiceModel]:
+        conditions: list[ColumnElement[bool]] = []
+        if invoice_number is not None:
+            conditions.append(InvoiceModel.invoice_number == invoice_number)
+        if customer_id is not None:
+            conditions.append(InvoiceModel.customer_id == customer_id)
+        if status is not None:
+            conditions.append(InvoiceModel.status == status)
+        if minimum_amount is not None:
+            conditions.append(InvoiceModel.total >= minimum_amount)
+        if maximum_amount is not None:
+            conditions.append(InvoiceModel.total <= maximum_amount)
+        if due_before is not None:
+            conditions.append(InvoiceModel.due_date < due_before)
+        if due_after is not None:
+            conditions.append(InvoiceModel.due_date > due_after)
+        stmt = select(InvoiceModel).where(*conditions).order_by(InvoiceModel.due_date)
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())

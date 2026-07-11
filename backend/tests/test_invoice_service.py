@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
 from domains.finance.repositories.payment_repository import PaymentRepository
-from domains.finance.services.invoice_service import InvoiceService
+from domains.finance.services.invoice_service import InvoiceRecord, InvoiceService
 
 AS_OF = date(2026, 7, 8)
 
@@ -186,3 +186,83 @@ async def test_unknown_customer_id_raises_value_error(
 ) -> None:
     with pytest.raises(ValueError, match="Customer not found"):
         await _service(db_session).get_unpaid_invoices(customer_id="CUST-DOES-NOT-EXIST")
+
+
+@pytest.mark.asyncio
+async def test_search_invoices_with_no_filters_returns_everything_with_days_outstanding(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6601", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6601", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 6, 1), status="paid",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await _service(db_session).search_invoices(as_of=AS_OF)
+
+    assert len(results) == 1
+    record = results[0]
+    assert isinstance(record, InvoiceRecord)
+    assert record.invoice_number == "INV-6601"
+    assert record.customer_name == "Acme Corp"
+    assert record.days_outstanding == (AS_OF - date(2026, 6, 1)).days
+
+
+@pytest.mark.asyncio
+async def test_search_invoices_filters_by_status_and_amount(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6701", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6701", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 6, 1), status="paid",
+        subtotal=Decimal("5000"), tax=Decimal("0"), total=Decimal("5000"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-6702", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 6, 1), status="sent",
+        subtotal=Decimal("5000"), tax=Decimal("0"), total=Decimal("5000"),
+    )
+    await db_session.commit()
+
+    results = await _service(db_session).search_invoices(
+        status="paid", minimum_amount=Decimal("1000"), as_of=AS_OF
+    )
+
+    assert [r.invoice_number for r in results] == ["INV-6701"]
+
+
+@pytest.mark.asyncio
+async def test_search_invoices_resolves_customer_id_business_code(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    acme = await _make_customer(db_session, "CUST-6801", "Acme Corp")
+    globex = await _make_customer(db_session, "CUST-6802", "Globex Inc")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6801", customer_id=acme.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 6, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-6802", customer_id=globex.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 6, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await _service(db_session).search_invoices(customer_id="CUST-6801", as_of=AS_OF)
+
+    assert [r.invoice_number for r in results] == ["INV-6801"]
+
+
+@pytest.mark.asyncio
+async def test_search_invoices_unknown_customer_id_raises_value_error(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    with pytest.raises(ValueError, match="Customer not found"):
+        await _service(db_session).search_invoices(customer_id="CUST-DOES-NOT-EXIST")
