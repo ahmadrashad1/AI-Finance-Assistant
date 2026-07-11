@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
 from domains.finance.repositories.payment_repository import PaymentRepository
-from domains.finance.services.invoice_service import InvoiceRecord, InvoiceService
+from domains.finance.services.invoice_service import CustomerBalance, InvoiceRecord, InvoiceService
 
 AS_OF = date(2026, 7, 8)
 
@@ -371,3 +371,70 @@ async def test_get_overdue_invoices_unknown_customer_id_raises_value_error(
 ) -> None:
     with pytest.raises(ValueError, match="Customer not found"):
         await _service(db_session).get_overdue_invoices(customer_id="CUST-DOES-NOT-EXIST")
+
+
+@pytest.mark.asyncio
+async def test_get_customer_balance_sums_unpaid_invoices(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7301", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-7301", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 3, 1), status="overdue",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-7302", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 6, 1), status="sent",
+        subtotal=Decimal("300"), tax=Decimal("0"), total=Decimal("300"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-7303", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 1, 1), status="paid",
+        subtotal=Decimal("999"), tax=Decimal("0"), total=Decimal("999"),
+    )
+    await db_session.commit()
+
+    balance = await _service(db_session).get_customer_balance(customer_name="Acme Corp")
+
+    assert isinstance(balance, CustomerBalance)
+    assert balance.customer_code == "CUST-7301"
+    assert balance.customer_name == "Acme Corp"
+    assert balance.total_outstanding == Decimal("800")
+    assert balance.unpaid_invoice_count == 2
+    assert balance.oldest_due_date == date(2026, 3, 1)
+
+
+@pytest.mark.asyncio
+async def test_get_customer_balance_is_case_insensitive(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    await _make_customer(db_session, "CUST-7401", "Acme Corp")
+    await db_session.commit()
+
+    balance = await _service(db_session).get_customer_balance(customer_name="acme corp")
+
+    assert balance.customer_code == "CUST-7401"
+
+
+@pytest.mark.asyncio
+async def test_get_customer_balance_with_no_unpaid_invoices_returns_zero(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    await _make_customer(db_session, "CUST-7501", "Acme Corp")
+    await db_session.commit()
+
+    balance = await _service(db_session).get_customer_balance(customer_name="Acme Corp")
+
+    assert balance.total_outstanding == Decimal("0")
+    assert balance.unpaid_invoice_count == 0
+    assert balance.oldest_due_date is None
+
+
+@pytest.mark.asyncio
+async def test_get_customer_balance_unknown_name_raises_value_error(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    with pytest.raises(ValueError, match="Customer not found"):
+        await _service(db_session).get_customer_balance(customer_name="Does Not Exist Inc.")

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.finance.models import CustomerModel
@@ -45,6 +45,13 @@ class CustomerRepository:
 
     async def get_by_code(self, customer_code: str) -> CustomerModel | None:
         stmt = select(CustomerModel).where(CustomerModel.customer_code == customer_code)
+        result = await self._db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_name(self, company_name: str) -> CustomerModel | None:
+        stmt = select(CustomerModel).where(
+            func.lower(CustomerModel.company_name) == company_name.lower()
+        )
         result = await self._db.execute(stmt)
         return result.scalar_one_or_none()
 

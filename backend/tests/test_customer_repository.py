@@ -69,3 +69,21 @@ async def test_list_all_orders_by_customer_code(
 
     customers = await repo.list_all()
     assert [c.customer_code for c in customers] == ["CUST-0001", "CUST-0002"]
+
+
+@pytest.mark.asyncio
+async def test_get_by_name_is_case_insensitive_and_returns_none_when_missing(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    repo = CustomerRepository(db_session)
+    await repo.create(
+        customer_code="CUST-0003", company_name="Northwind Manufacturing Ltd.",
+        industry="Automotive", contact_name="A", contact_email="a@example.com",
+        payment_terms="net_30", credit_limit=Decimal("1000.00"),
+    )
+    await db_session.commit()
+
+    fetched = await repo.get_by_name("northwind manufacturing ltd.")
+    assert fetched is not None
+    assert fetched.customer_code == "CUST-0003"
+    assert await repo.get_by_name("Does Not Exist Inc.") is None

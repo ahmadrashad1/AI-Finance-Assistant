@@ -42,6 +42,15 @@ class InvoiceRecord:
     status: str
 
 
+@dataclass(frozen=True)
+class CustomerBalance:
+    customer_code: str
+    customer_name: str
+    total_outstanding: Decimal
+    unpaid_invoice_count: int
+    oldest_due_date: date | None
+
+
 class InvoiceService:
     """Business logic for accounts-receivable invoice queries.
 
@@ -183,3 +192,22 @@ class InvoiceService:
             records = [record for record in records if record.days_outstanding >= minimum_days]
         records.sort(key=lambda record: record.days_outstanding, reverse=True)
         return records
+
+    async def get_customer_balance(self, *, customer_name: str) -> CustomerBalance:
+        customer = await self._customer_repository.get_by_name(customer_name)
+        if customer is None:
+            raise ValueError(f"Customer not found: {customer_name}")
+
+        invoices = await self._invoice_repository.list_by_statuses(
+            statuses=UNPAID_STATUSES, customer_id=customer.id
+        )
+        total_outstanding = sum((invoice.balance for invoice in invoices), Decimal("0"))
+        oldest_due_date = min((invoice.due_date for invoice in invoices), default=None)
+
+        return CustomerBalance(
+            customer_code=customer.customer_code,
+            customer_name=customer.company_name,
+            total_outstanding=total_outstanding,
+            unpaid_invoice_count=len(invoices),
+            oldest_due_date=oldest_due_date,
+        )
