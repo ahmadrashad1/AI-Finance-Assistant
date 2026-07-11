@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import lru_cache
 
 from ai_platform.tool_registry.registry import ToolRegistry
