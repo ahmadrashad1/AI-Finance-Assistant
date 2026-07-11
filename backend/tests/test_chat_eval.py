@@ -22,7 +22,11 @@ from ai_platform.tool_registry.executor import ToolExecutor
 from ai_platform.tool_registry.registry import ToolRegistry
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
+from domains.finance.tools.get_customer_balance import GET_CUSTOMER_BALANCE_TOOL
+from domains.finance.tools.get_overdue_invoices import GET_OVERDUE_INVOICES_TOOL
 from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
+from domains.finance.tools.get_vendor_balance import GET_VENDOR_BALANCE_TOOL
+from domains.finance.tools.search_invoices import SEARCH_INVOICES_TOOL
 from tests.fakes import FakeLLMService
 
 
@@ -31,6 +35,10 @@ def _make_workflow(db_session: AsyncSession, llm_service: FakeLLMService) -> Cha
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
     registry.register(GET_UNPAID_INVOICES_TOOL)
+    registry.register(SEARCH_INVOICES_TOOL)
+    registry.register(GET_OVERDUE_INVOICES_TOOL)
+    registry.register(GET_CUSTOMER_BALANCE_TOOL)
+    registry.register(GET_VENDOR_BALANCE_TOOL)
     execution_repository = ToolExecutionRepository(db_session)
     tool_executor = ToolExecutor(registry, execution_repository, db_session)
     prompt_builder = PromptBuilder()
@@ -215,3 +223,140 @@ async def test_eval_unpaid_invoice_phrasings_all_select_get_unpaid_invoices(
 
     tool_call_events = [e for e in events if e.type == "tool_call"]
     assert [e.tool for e in tool_call_events] == ["get_unpaid_invoices"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "phrasing",
+    [
+        "Find invoice INV-1045",
+        "Show invoice INV-1045",
+        "Look up invoice INV-1045",
+    ],
+)
+async def test_eval_search_invoices_phrasings_all_select_search_invoices(
+    clean_db: None, db_session: AsyncSession, phrasing: str
+) -> None:
+    """Milestone 6: single-invoice lookup phrasings must plan
+    search_invoices, not a nonexistent get_invoice tool."""
+    llm_service = FakeLLMService(
+        tokens=["Here's that invoice."],
+        plan_response=(
+            '{"tool_calls": [{"tool": "search_invoices", '
+            '"parameters": {"invoice_number": "INV-1045"}}]}'
+        ),
+    )
+    workflow = _make_workflow(db_session, llm_service)
+
+    events = [
+        e
+        async for e in workflow.run(
+            ChatRequest(session_id=f"eval-search-{phrasing}", message=phrasing)
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["search_invoices"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "phrasing",
+    [
+        "Show invoices overdue by 30 days",
+        "Which invoices are past due?",
+        "Show Northwind's overdue invoices",
+    ],
+)
+async def test_eval_overdue_phrasings_all_select_get_overdue_invoices(
+    clean_db: None, db_session: AsyncSession, phrasing: str
+) -> None:
+    """Milestone 6: day-threshold / explicitly-overdue phrasings must plan
+    get_overdue_invoices, not the broader get_unpaid_invoices."""
+    llm_service = FakeLLMService(
+        tokens=["Here are the overdue invoices."],
+        plan_response='{"tool_calls": [{"tool": "get_overdue_invoices", "parameters": {}}]}',
+    )
+    workflow = _make_workflow(db_session, llm_service)
+
+    events = [
+        e
+        async for e in workflow.run(
+            ChatRequest(session_id=f"eval-overdue-{phrasing}", message=phrasing)
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["get_overdue_invoices"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "phrasing",
+    [
+        "How much does Northwind Manufacturing owe us?",
+        "What's Acme Corp's balance?",
+        "How much do we have outstanding from Globex Inc?",
+    ],
+)
+async def test_eval_customer_balance_phrasings_all_select_get_customer_balance(
+    clean_db: None, db_session: AsyncSession, phrasing: str
+) -> None:
+    """Milestone 6: single-customer balance phrasings must plan
+    get_customer_balance."""
+    llm_service = FakeLLMService(
+        tokens=["Here's their balance."],
+        plan_response=(
+            '{"tool_calls": [{"tool": "get_customer_balance", '
+            '"parameters": {"customer_name": "placeholder"}}]}'
+        ),
+    )
+    workflow = _make_workflow(db_session, llm_service)
+
+    events = [
+        e
+        async for e in workflow.run(
+            ChatRequest(session_id=f"eval-cb-{phrasing}", message=phrasing)
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["get_customer_balance"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "phrasing",
+    [
+        "What do we owe Summit Traders?",
+        "What's our balance with Cascade Logistics?",
+        "How much do we owe Apex Supplies?",
+    ],
+)
+async def test_eval_vendor_balance_phrasings_all_select_get_vendor_balance(
+    clean_db: None, db_session: AsyncSession, phrasing: str
+) -> None:
+    """Milestone 6: single-vendor balance phrasings must plan
+    get_vendor_balance."""
+    llm_service = FakeLLMService(
+        tokens=["Here's the vendor balance."],
+        plan_response=(
+            '{"tool_calls": [{"tool": "get_vendor_balance", '
+            '"parameters": {"vendor_name": "placeholder"}}]}'
+        ),
+    )
+    workflow = _make_workflow(db_session, llm_service)
+
+    events = [
+        e
+        async for e in workflow.run(
+            ChatRequest(session_id=f"eval-vb-{phrasing}", message=phrasing)
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["get_vendor_balance"]

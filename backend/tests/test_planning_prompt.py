@@ -4,9 +4,9 @@ from ai_platform.prompts.planning_prompt import AUTHOR, CHANGELOG, VERSION, buil
 
 
 def test_planning_prompt_is_versioned() -> None:
-    assert VERSION == "1.1.0"
+    assert VERSION == "1.2.0"
     assert AUTHOR
-    assert len(CHANGELOG) >= 2
+    assert len(CHANGELOG) >= 3
 
 
 def test_build_planning_prompt_embeds_tool_specs_and_schema_shapes() -> None:
@@ -27,3 +27,23 @@ def test_build_planning_prompt_teaches_paraphrase_invariant_tool_selection() -> 
         "customers with overdue invoices",
     ]:
         assert phrase in prompt
+
+
+def test_build_planning_prompt_disambiguates_unpaid_vs_overdue() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "get_overdue_invoices" in prompt
+    assert "day threshold" in prompt
+
+
+def test_build_planning_prompt_teaches_search_invoices_phrasings() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "find invoice" in prompt
+    assert "search_invoices" in prompt
+
+
+def test_build_planning_prompt_teaches_customer_and_vendor_balance_phrasings() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "get_customer_balance" in prompt
+    assert "get_vendor_balance" in prompt
+    assert "how much does" in prompt
+    assert "what do we owe" in prompt
