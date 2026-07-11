@@ -11,6 +11,7 @@ from domains.finance.repositories.invoice_repository import (
     InvoiceRepository,
     compute_invoice_status,
 )
+from domains.finance.repositories.payment_repository import PaymentRepository
 
 
 async def _make_customer(db_session: AsyncSession, code: str = "CUST-0001") -> object:
@@ -244,6 +245,62 @@ async def test_search_filters_by_amount_range(clean_db: None, db_session: AsyncS
 
     results = await repo.search(minimum_amount=Decimal("100"), maximum_amount=Decimal("1000"))
     assert [i.invoice_number for i in results] == ["INV-7602"]
+
+
+@pytest.mark.asyncio
+async def test_search_amount_filters_on_total_not_balance(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """Regression test: verify amount filters use total, not balance.
+
+    Creates an invoice with a partial payment so that total != balance,
+    then searches by amount range. The search must filter on the invoice's
+    face amount (total), not its outstanding balance. If someone accidentally
+    swapped the filter to use balance instead of total, this test would fail.
+    """
+    customer = await _make_customer(db_session, "CUST-7701")
+    invoice_repo = InvoiceRepository(db_session)
+    payment_repo = PaymentRepository(db_session)
+
+    # Create invoice with total=1000, initially balance=1000 (no payments)
+    inv_with_payment = await invoice_repo.create(
+        invoice_number="INV-7701", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("909.09"), tax=Decimal("90.91"), total=Decimal("1000.00"),
+    )
+    # Record a payment of 500, leaving balance=500 but total still=1000
+    await payment_repo.record_payment(
+        invoice_id=inv_with_payment.id, payment_date=date(2026, 1, 15),
+        amount=Decimal("500.00"), payment_method="check",
+    )
+
+    # Create another invoice with total=700 (unchanged, balance=700)
+    await invoice_repo.create(
+        invoice_number="INV-7702", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("636.36"), tax=Decimal("63.64"), total=Decimal("700.00"),
+    )
+    await db_session.commit()
+
+    # Refresh to see updated state
+    inv_with_payment = await invoice_repo.get_by_id(inv_with_payment.id)
+    assert inv_with_payment is not None
+    assert inv_with_payment.total == Decimal("1000.00")
+    assert inv_with_payment.balance == Decimal("500.00")
+
+    # Search for invoices in range [700, 1000] on total (not balance)
+    # Should return INV-7701 (total=1000 is in range, even though balance=500 is not)
+    # and INV-7702 (total=700 is in range)
+    results = await invoice_repo.search(
+        minimum_amount=Decimal("700"), maximum_amount=Decimal("1000")
+    )
+    result_numbers = [i.invoice_number for i in results]
+    assert set(result_numbers) == {"INV-7701", "INV-7702"}
+
+    # Verify INV-7701 is in results (it must filter on total, not balance)
+    inv_7701_result = next(i for i in results if i.invoice_number == "INV-7701")
+    assert inv_7701_result.total == Decimal("1000.00")
+    assert inv_7701_result.balance == Decimal("500.00")
 
 
 @pytest.mark.asyncio
