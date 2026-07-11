@@ -23,3 +23,8 @@ its own parameters, calls `InvoiceService.search_invoices`, and returns
 'overdue' specifically, sorted by days overdue (most urgent first); it
 calls `InvoiceService.get_overdue_invoices` and returns `{invoices: [...],
 summary: {count, total_outstanding}}`.
+
+`get_customer_balance` (Milestone 6) resolves a customer by company name
+(not business code - it's the one thing this tool is about), calls
+`InvoiceService.get_customer_balance`, and returns a flat balance record
+(no list/summary wrapper - there's only ever one customer per call).

@@ -12,4 +12,5 @@ def test_registry_includes_all_registered_tools() -> None:
         "get_unpaid_invoices",
         "search_invoices",
         "get_overdue_invoices",
+        "get_customer_balance",
     }
