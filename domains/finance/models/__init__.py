@@ -4,6 +4,7 @@ from domains.finance.models.billing import InvoiceItemModel, InvoiceModel, Payme
 from domains.finance.models.catalog import ProductModel
 from domains.finance.models.expenses import ExpenseClaimModel
 from domains.finance.models.organizations import CustomerModel, VendorModel
+from domains.finance.models.payables import VendorInvoiceModel, VendorPaymentModel
 from domains.finance.models.purchasing import PurchaseOrderItemModel, PurchaseOrderModel
 from domains.finance.models.workforce import DepartmentModel, EmployeeModel
 
@@ -19,4 +20,6 @@ __all__ = [
     "InvoiceItemModel",
     "PaymentModel",
     "ExpenseClaimModel",
+    "VendorInvoiceModel",
+    "VendorPaymentModel",
 ]
