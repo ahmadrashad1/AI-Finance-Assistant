@@ -13,4 +13,5 @@ def test_registry_includes_all_registered_tools() -> None:
         "search_invoices",
         "get_overdue_invoices",
         "get_customer_balance",
+        "get_vendor_balance",
     }

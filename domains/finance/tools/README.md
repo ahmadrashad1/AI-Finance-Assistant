@@ -28,3 +28,8 @@ summary: {count, total_outstanding}}`.
 (not business code - it's the one thing this tool is about), calls
 `InvoiceService.get_customer_balance`, and returns a flat balance record
 (no list/summary wrapper - there's only ever one customer per call).
+
+`get_vendor_balance` (Milestone 6) is the first Accounts Payable tool: it
+resolves a vendor by company name, calls `VendorService.get_vendor_balance`,
+and returns a flat balance record approximated from open purchase orders
+(see `VendorService`'s docstring for why).
