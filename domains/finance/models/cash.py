@@ -33,6 +33,13 @@ class CashTransactionModel(Base):
             "transaction_type IN ('customer_payment', 'vendor_payment')",
             name="ck_cash_transactions_type",
         ),
+        CheckConstraint(
+            "(transaction_type = 'customer_payment' AND payment_id IS NOT NULL "
+            "AND vendor_payment_id IS NULL) OR "
+            "(transaction_type = 'vendor_payment' AND vendor_payment_id IS NOT NULL "
+            "AND payment_id IS NULL)",
+            name="ck_cash_transactions_reference_matches_type",
+        ),
         Index("ix_cash_transactions_bank_account_id", "bank_account_id"),
         {"schema": SCHEMA},
     )
