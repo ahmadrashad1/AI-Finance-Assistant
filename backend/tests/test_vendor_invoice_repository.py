@@ -148,3 +148,62 @@ async def test_list_by_statuses_filters_by_minimum_balance(
 
     results = await repo.list_by_statuses(statuses=("sent",), minimum_balance=Decimal("100"))
     assert [r.vendor_invoice_number for r in results] == ["VINV-1302"]
+
+
+@pytest.mark.asyncio
+async def test_create_and_get_by_id(clean_db: None, db_session: AsyncSession) -> None:
+    vendor = await _make_vendor(db_session)
+    repo = VendorInvoiceRepository(db_session)
+    invoice = await repo.create(
+        vendor_invoice_number="VINV-0002", vendor_id=vendor.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 1, 31), status="sent",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    await db_session.commit()
+
+    fetched = await repo.get_by_id(invoice.id)
+    assert fetched is not None
+    assert fetched.id == invoice.id
+    assert fetched.vendor_invoice_number == "VINV-0002"
+    assert fetched.balance == Decimal("500")
+    assert fetched.amount_paid == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_list_by_statuses_filters_by_vendor_and_minimum_balance(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """Verify that vendor_id and minimum_balance genuinely AND together.
+
+    This test proves that list_by_statuses requires BOTH filters to be satisfied,
+    not just either one independently.
+    """
+    vendor_a = await _make_vendor(db_session, "VEND-1401")
+    vendor_b = await _make_vendor(db_session, "VEND-1402")
+    repo = VendorInvoiceRepository(db_session)
+
+    # vendor_a: high balance, sent status
+    await repo.create(
+        vendor_invoice_number="VINV-1401", vendor_id=vendor_a.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    # vendor_a: low balance, sent status (fails minimum_balance)
+    await repo.create(
+        vendor_invoice_number="VINV-1402", vendor_id=vendor_a.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 2), due_date=date(2026, 2, 2), status="sent",
+        subtotal=Decimal("50"), tax=Decimal("0"), total=Decimal("50"),
+    )
+    # vendor_b: high balance, sent status (fails vendor_id)
+    await repo.create(
+        vendor_invoice_number="VINV-1403", vendor_id=vendor_b.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 3), due_date=date(2026, 2, 3), status="sent",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    await db_session.commit()
+
+    # Only VINV-1401 should match: vendor_a AND balance >= 100
+    results = await repo.list_by_statuses(
+        statuses=("sent",), vendor_id=vendor_a.id, minimum_balance=Decimal("100")
+    )
+    assert [r.vendor_invoice_number for r in results] == ["VINV-1401"]
