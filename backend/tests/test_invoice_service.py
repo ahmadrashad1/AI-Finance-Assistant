@@ -266,3 +266,108 @@ async def test_search_invoices_unknown_customer_id_raises_value_error(
 ) -> None:
     with pytest.raises(ValueError, match="Customer not found"):
         await _service(db_session).search_invoices(customer_id="CUST-DOES-NOT-EXIST")
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_invoices_returns_only_overdue_status(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6901", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6901", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 5, 1), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    for number, status in [
+        ("INV-6902", "sent"), ("INV-6903", "partially_paid"),
+        ("INV-6904", "paid"), ("INV-6905", "draft"),
+    ]:
+        await invoice_repo.create(
+            invoice_number=number, customer_id=customer.id, purchase_order_id=None,
+            issue_date=date(2026, 1, 1), due_date=date(2026, 5, 1), status=status,
+            subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+        )
+    await db_session.commit()
+
+    results = await _service(db_session).get_overdue_invoices(as_of=AS_OF)
+
+    assert [r.invoice_number for r in results] == ["INV-6901"]
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_invoices_sorts_by_days_outstanding_descending(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7001", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-7001", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 7, 1), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-7002", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 1, 1), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await _service(db_session).get_overdue_invoices(as_of=AS_OF)
+
+    assert [r.invoice_number for r in results] == ["INV-7002", "INV-7001"]
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_invoices_minimum_days_filters_out_recently_overdue(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7101", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-7101", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 7, 5), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-7102", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 1, 1), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await _service(db_session).get_overdue_invoices(minimum_days=30, as_of=AS_OF)
+
+    assert [r.invoice_number for r in results] == ["INV-7102"]
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_invoices_resolves_customer_id_business_code(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    acme = await _make_customer(db_session, "CUST-7201", "Acme Corp")
+    globex = await _make_customer(db_session, "CUST-7202", "Globex Inc")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-7201", customer_id=acme.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 1, 1), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-7202", customer_id=globex.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 1, 1), status="overdue",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    results = await _service(db_session).get_overdue_invoices(customer_id="CUST-7201", as_of=AS_OF)
+
+    assert [r.invoice_number for r in results] == ["INV-7201"]
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_invoices_unknown_customer_id_raises_value_error(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    with pytest.raises(ValueError, match="Customer not found"):
+        await _service(db_session).get_overdue_invoices(customer_id="CUST-DOES-NOT-EXIST")

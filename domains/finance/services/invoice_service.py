@@ -143,3 +143,43 @@ class InvoiceService:
             )
             for invoice in invoices
         ]
+
+    async def get_overdue_invoices(
+        self,
+        *,
+        customer_id: str | None = None,
+        minimum_days: int | None = None,
+        as_of: date | None = None,
+    ) -> list[InvoiceRecord]:
+        resolved_customer_id: uuid.UUID | None = None
+        if customer_id is not None:
+            customer = await self._customer_repository.get_by_code(customer_id)
+            if customer is None:
+                raise ValueError(f"Customer not found: {customer_id}")
+            resolved_customer_id = customer.id
+
+        effective_as_of = as_of if as_of is not None else date.today()
+
+        invoices = await self._invoice_repository.list_by_statuses(
+            statuses=("overdue",), customer_id=resolved_customer_id
+        )
+        customers = await self._customer_repository.list_all()
+        customer_names = {customer.id: customer.company_name for customer in customers}
+
+        records = [
+            InvoiceRecord(
+                invoice_number=invoice.invoice_number,
+                customer_name=customer_names.get(invoice.customer_id, "Unknown customer"),
+                issue_date=invoice.issue_date,
+                due_date=invoice.due_date,
+                total=invoice.total,
+                balance=invoice.balance,
+                days_outstanding=max(0, (effective_as_of - invoice.due_date).days),
+                status=invoice.status,
+            )
+            for invoice in invoices
+        ]
+        if minimum_days is not None:
+            records = [record for record in records if record.days_outstanding >= minimum_days]
+        records.sort(key=lambda record: record.days_outstanding, reverse=True)
+        return records
