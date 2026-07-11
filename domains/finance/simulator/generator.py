@@ -9,17 +9,21 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.finance.models import (
+    BankAccountModel,
+    CashTransactionModel,
     CustomerModel,
     DepartmentModel,
     EmployeeModel,
     ExpenseClaimModel,
     InvoiceItemModel,
     InvoiceModel,
+    PaymentModel,
     ProductModel,
     PurchaseOrderItemModel,
     PurchaseOrderModel,
     VendorInvoiceModel,
     VendorModel,
+    VendorPaymentModel,
 )
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import (
@@ -48,6 +52,7 @@ from domains.finance.simulator.constants import (
     NUM_PURCHASE_ORDERS,
     NUM_VENDOR_INVOICES,
     NUM_VENDORS,
+    OPENING_CASH_BALANCE,
     PAYMENT_COVERAGE,
     PAYMENT_METHODS,
     PAYMENT_TERMS,
@@ -185,6 +190,7 @@ class SimulatorSeeder:
         vendor_invoices = await self._seed_vendor_invoices(vendors, purchase_orders)
         await self._seed_vendor_payments(vendor_invoices)
         await self._seed_expense_claims(employees)
+        await self._seed_cash_ledger()
         await self._db.flush()
 
     async def _seed_purchase_orders(
@@ -458,4 +464,44 @@ class SimulatorSeeder:
                     )
                 )
                 claim_num += 1
+        await self._db.flush()
+
+    async def _seed_cash_ledger(self) -> None:
+        window_start = SIMULATION_TODAY - timedelta(days=INVOICE_WINDOW_MONTHS * 30)
+        account = BankAccountModel(
+            id=uuid.uuid4(),
+            account_name="Operating Account",
+            opening_balance=OPENING_CASH_BALANCE,
+            opening_date=window_start,
+        )
+        self._db.add(account)
+        await self._db.flush()
+
+        customer_payments = (await self._db.execute(select(PaymentModel))).scalars().all()
+        for payment in customer_payments:
+            self._db.add(
+                CashTransactionModel(
+                    id=uuid.uuid4(),
+                    bank_account_id=account.id,
+                    transaction_date=payment.payment_date,
+                    amount=payment.amount,
+                    transaction_type="customer_payment",
+                    payment_id=payment.id,
+                )
+            )
+
+        vendor_payments = (
+            await self._db.execute(select(VendorPaymentModel))
+        ).scalars().all()
+        for vendor_payment in vendor_payments:
+            self._db.add(
+                CashTransactionModel(
+                    id=uuid.uuid4(),
+                    bank_account_id=account.id,
+                    transaction_date=vendor_payment.payment_date,
+                    amount=-vendor_payment.amount,
+                    transaction_type="vendor_payment",
+                    vendor_payment_id=vendor_payment.id,
+                )
+            )
         await self._db.flush()

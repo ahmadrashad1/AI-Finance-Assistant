@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 # Fixed anchor -- never datetime.now()/date.today() anywhere in this package.
 # See design spec S3: re-running the same seed must always produce the same
@@ -21,6 +22,8 @@ PAYMENT_COVERAGE = 0.70
 NUM_VENDOR_INVOICES = 60
 VENDOR_PAYMENT_COVERAGE = 0.70
 INVOICE_WINDOW_MONTHS = 18
+
+OPENING_CASH_BALANCE = Decimal("750000.00")
 
 # Mirrors the CHECK constraints in domains/finance/models/ -- one place
 # each is spelled out, per the design spec.

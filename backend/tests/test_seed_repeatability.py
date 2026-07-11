@@ -7,6 +7,8 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.finance.models import (
+    BankAccountModel,
+    CashTransactionModel,
     CustomerModel,
     EmployeeModel,
     ExpenseClaimModel,
@@ -21,6 +23,7 @@ from domains.finance.models import (
 from domains.finance.simulator.generator import SimulatorSeeder
 
 FINANCE_TABLES = (
+    "finance.cash_transactions", "finance.bank_accounts",
     "finance.vendor_payments", "finance.vendor_invoices",
     "finance.payments", "finance.invoice_items", "finance.invoices",
     "finance.purchase_order_items", "finance.purchase_orders", "finance.expense_claims",
@@ -34,7 +37,7 @@ async def _snapshot(db_session: AsyncSession) -> dict[str, object]:
     for model in (
         CustomerModel, VendorModel, ProductModel, EmployeeModel,
         PurchaseOrderModel, InvoiceModel, PaymentModel, ExpenseClaimModel,
-        VendorInvoiceModel, VendorPaymentModel,
+        VendorInvoiceModel, VendorPaymentModel, BankAccountModel, CashTransactionModel,
     ):
         counts[model.__tablename__] = (
             await db_session.execute(select(func.count()).select_from(model))
