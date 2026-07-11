@@ -1,6 +1,6 @@
 """Versioned system prompt for the general chat assistant.
 
-Version: 1.2.0
+Version: 1.3.0
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-05): Initial version. General-purpose finance-assistant
@@ -14,11 +14,16 @@ Changelog:
     tool whose result is a list of records rather than a single value.
     Instructs the model to render such lists as markdown tables so the
     chat UI's table renderer has something to render.
+  - 1.3.0 (2026-07-11): Milestone 6 caps large list-shaped tool results
+    before they reach this prompt (top 10 by materiality/urgency, see
+    result_shaping.py). Instructs the model to say so and quote the
+    result's summary block for true totals whenever a result is marked
+    truncated, rather than only summing the rows shown.
 """
 
 from __future__ import annotations
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-05): Initial version - general chat persona, no tools.",
@@ -27,6 +32,9 @@ CHANGELOG = [
     "1.2.0 (2026-07-10): Instruct the model to render list-shaped tool "
     "results (e.g. unpaid invoices) as markdown tables now that "
     "get_unpaid_invoices exists and the frontend can render them.",
+    "1.3.0 (2026-07-11): Instruct the model to acknowledge truncated tool "
+    "results and quote the summary block's true totals, now that large "
+    "result sets are capped before reaching this prompt.",
 ]
 
 SYSTEM_PROMPT = (
@@ -39,5 +47,9 @@ SYSTEM_PROMPT = (
     "When a tool result contains a list of records (e.g. unpaid invoices), "
     "present them as a markdown table - a header row, a separator row, and "
     "one row per record - followed by a one-line summary; don't retype the "
-    "list as prose."
+    "list as prose. "
+    "If a tool result includes \"_truncated\": true, tell the user you're "
+    "showing only the top records (by materiality or urgency) out of the "
+    "total count, and give the true overall totals from the result's "
+    "summary block rather than only summing the rows shown."
 )

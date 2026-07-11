@@ -12,6 +12,7 @@ from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
+from ai_platform.orchestration.result_shaping import cap_result_for_prompt
 from ai_platform.prompts.system_prompt import SYSTEM_PROMPT
 from ai_platform.tool_registry.executor import ToolExecutionOutcome, ToolExecutor
 from ai_platform.workflow.base import Workflow, WorkflowContext
@@ -44,7 +45,7 @@ def _build_response_message(message: str, outcomes: list[ToolExecutionOutcome]) 
         {
             "tool": outcome.tool,
             "status": outcome.status,
-            "result": outcome.result,
+            "result": cap_result_for_prompt(outcome.result),
             "error": outcome.error_message,
         }
         for outcome in outcomes

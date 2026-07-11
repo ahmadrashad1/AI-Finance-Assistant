@@ -11,7 +11,7 @@ from ai_platform.orchestration.chat_workflow import ChatRequest, ChatWorkflow
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.tool_registry.executor import ToolExecutor
-from ai_platform.tool_registry.registry import ToolRegistry
+from ai_platform.tool_registry.registry import ToolRegistry, ToolSpec
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
 from app.core.errors import ValidationError
@@ -19,12 +19,16 @@ from tests.fakes import FakeLLMService
 
 
 def _make_workflow(
-    db_session: AsyncSession, llm_service: FakeLLMService
+    db_session: AsyncSession,
+    llm_service: FakeLLMService,
+    extra_tools: list[ToolSpec] | None = None,
 ) -> tuple[ChatWorkflow, ConversationRepository, ToolExecutionRepository]:
     repository = ConversationRepository(db_session)
     memory = ConversationMemory(repository)
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
+    for tool in extra_tools or []:
+        registry.register(tool)
     execution_repository = ToolExecutionRepository(db_session)
     tool_executor = ToolExecutor(registry, execution_repository, db_session)
     prompt_builder = PromptBuilder()
@@ -198,3 +202,52 @@ async def test_clarification_branch_skips_tool_execution_and_phase_two(
 
     executions = await execution_repository.list_for_conversation(conversation_id)
     assert executions == []
+
+
+@pytest.mark.asyncio
+async def test_large_list_tool_result_is_capped_before_reaching_the_llm(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    import json as json_module
+
+    from pydantic import BaseModel
+
+    from ai_platform.tool_registry.registry import ToolContext
+
+    class _BigListParams(BaseModel):
+        pass
+
+    class _BigListResult(BaseModel):
+        items: list[int]
+
+    async def _big_list_handler(params: _BigListParams, context: ToolContext) -> _BigListResult:
+        return _BigListResult(items=list(range(15)))
+
+    big_list_tool = ToolSpec(
+        name="big_list",
+        description="Returns a big list.",
+        parameters_model=_BigListParams,
+        result_model=_BigListResult,
+        handler=_big_list_handler,
+    )
+    llm_service = FakeLLMService(
+        tokens=["ok"],
+        plan_response='{"tool_calls": [{"tool": "big_list", "parameters": {}}]}',
+    )
+    workflow, _repository, _execution_repository = _make_workflow(
+        db_session, llm_service, extra_tools=[big_list_tool]
+    )
+
+    request = ChatRequest(session_id="session-wf-cap", message="give me the big list")
+    async for _ in workflow.run(request):
+        pass
+    await db_session.commit()
+
+    assert llm_service.last_message is not None
+    tool_results_json = llm_service.last_message.split("\n\n[Tool results — use only this data]\n")[
+        1
+    ]
+    payload = json_module.loads(tool_results_json)
+    assert payload[0]["result"]["items"] == list(range(10))
+    assert payload[0]["result"]["_truncated"] is True
+    assert payload[0]["result"]["_items_omitted_count"] == 5
