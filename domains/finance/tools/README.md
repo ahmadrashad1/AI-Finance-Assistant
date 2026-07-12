@@ -29,7 +29,16 @@ summary: {count, total_outstanding}}`.
 `InvoiceService.get_customer_balance`, and returns a flat balance record
 (no list/summary wrapper - there's only ever one customer per call).
 
-`get_vendor_balance` (Milestone 6) is the first Accounts Payable tool: it
-resolves a vendor by company name, calls `VendorService.get_vendor_balance`,
-and returns a flat balance record approximated from open purchase orders
-(see `VendorService`'s docstring for why).
+`get_vendor_balance` (Milestone 6, upgraded in Milestone 7) is the first
+Accounts Payable tool: it resolves a vendor by company name, calls
+`VendorService.get_vendor_balance`, and returns a flat balance record
+summed from that vendor's outstanding vendor invoices. Milestone 6
+originally approximated this from open purchase orders before real
+vendor invoices/payments existed; that approximation is gone now that
+the real ledger does.
+
+`get_cash_position` (Milestone 7) returns the company's current cash
+balance from the real bank-account ledger (`CashRepository`). Takes no
+parameters. Used alongside `get_vendor_invoices` when the user asks a
+reasoning question with no single-tool answer (e.g. "which invoices
+should I pay first?") - Phase 2 reasons over both results together.
