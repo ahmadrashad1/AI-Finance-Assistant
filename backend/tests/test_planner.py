@@ -6,6 +6,7 @@ from ai_platform.memory.conversation_memory import HistoryMessage
 from ai_platform.orchestration.planner import Plan, Planner, ToolCall
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.tool_registry.registry import ToolRegistry
+from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
 from app.core.errors import AIError
 from tests.fakes import FakeLLMService
 
@@ -79,3 +80,40 @@ async def test_create_plan_passes_history_and_tool_specs_to_the_llm() -> None:
     assert llm_service.last_complete_history == [{"role": "user", "content": "hello"}]
     assert llm_service.last_complete_message == "how are you?"
     assert "direct_answer" in (llm_service.last_complete_system or "")
+
+
+@pytest.mark.asyncio
+async def test_create_plan_returns_clarification_when_tool_calls_exceed_the_cap() -> None:
+    tool_calls_json = ", ".join(
+        '{"tool": "get_current_date", "parameters": {}}' for _ in range(6)
+    )
+    llm_service = FakeLLMService(
+        tokens=["unused"], plan_response=f'{{"tool_calls": [{tool_calls_json}]}}'
+    )
+    registry = ToolRegistry()
+    registry.register(GET_CURRENT_DATE_TOOL)
+    planner = Planner(llm_service, registry, PromptBuilder())
+
+    plan = await planner.create_plan([], "do six things")
+
+    assert plan.clarification_needed is not None
+    assert plan.tool_calls is None
+    assert "narrow" in plan.clarification_needed.lower()
+
+
+@pytest.mark.asyncio
+async def test_create_plan_accepts_exactly_five_tool_calls() -> None:
+    tool_calls_json = ", ".join(
+        '{"tool": "get_current_date", "parameters": {}}' for _ in range(5)
+    )
+    llm_service = FakeLLMService(
+        tokens=["unused"], plan_response=f'{{"tool_calls": [{tool_calls_json}]}}'
+    )
+    registry = ToolRegistry()
+    registry.register(GET_CURRENT_DATE_TOOL)
+    planner = Planner(llm_service, registry, PromptBuilder())
+
+    plan = await planner.create_plan([], "do five things")
+
+    assert plan.tool_calls is not None
+    assert len(plan.tool_calls) == 5

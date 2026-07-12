@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Final
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic import ValidationError as PydanticValidationError
@@ -12,6 +12,11 @@ from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.prompts.planning_prompt import build_planning_prompt
 from ai_platform.tool_registry.registry import ToolRegistry
 from app.core.errors import AIError
+
+MAX_TOOL_CALLS_PER_PLAN: Final[int] = 5
+TOO_MANY_TOOL_CALLS_MESSAGE: Final[str] = (
+    "That's a lot to look up at once - could you narrow your question down a bit?"
+)
 
 
 class ToolCall(BaseModel):
@@ -64,10 +69,21 @@ class Planner:
         prompt = self._prompt_builder.build(system, history)
         raw = await self._llm_service.complete(prompt.system, prompt.messages, message)
         cleaned = _strip_code_fences(raw)
+
         try:
             data = json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            raise AIError(
+                "I had trouble figuring out how to answer that. Please try rephrasing."
+            ) from exc
+
+        raw_tool_calls = data.get("tool_calls") if isinstance(data, dict) else None
+        if isinstance(raw_tool_calls, list) and len(raw_tool_calls) > MAX_TOOL_CALLS_PER_PLAN:
+            return Plan(clarification_needed=TOO_MANY_TOOL_CALLS_MESSAGE)
+
+        try:
             return Plan.model_validate(data)
-        except (json.JSONDecodeError, PydanticValidationError) as exc:
+        except PydanticValidationError as exc:
             raise AIError(
                 "I had trouble figuring out how to answer that. Please try rephrasing."
             ) from exc
