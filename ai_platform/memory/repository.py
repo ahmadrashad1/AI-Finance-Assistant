@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_platform.memory.models import ConversationModel, MessageModel, SessionModel
+from ai_platform.memory.models import (
+    ConversationModel,
+    MessageModel,
+    SessionModel,
+    TurnSummaryModel,
+)
 
 TITLE_MAX_LENGTH = 50
 
@@ -62,6 +68,34 @@ class ConversationRepository:
             select(MessageModel)
             .where(MessageModel.conversation_id == conversation_id)
             .order_by(MessageModel.created_at.asc())
+        )
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def record_turn_summary(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        tool_calls: list[dict[str, Any]],
+        entities: dict[str, list[str]],
+    ) -> TurnSummaryModel:
+        summary = TurnSummaryModel(
+            id=uuid.uuid4(), conversation_id=conversation_id,
+            tool_calls=tool_calls, entities=entities,
+        )
+        self._db.add(summary)
+        await self._db.flush()
+        await self._db.refresh(summary)
+        return summary
+
+    async def list_recent_turn_summaries(
+        self, conversation_id: uuid.UUID, limit: int = 2
+    ) -> list[TurnSummaryModel]:
+        stmt = (
+            select(TurnSummaryModel)
+            .where(TurnSummaryModel.conversation_id == conversation_id)
+            .order_by(TurnSummaryModel.created_at.desc())
+            .limit(limit)
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
