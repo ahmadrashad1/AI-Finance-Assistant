@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
@@ -75,5 +75,5 @@ class TurnSummaryModel(Base):
     tool_calls: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
     entities: Mapped[dict[str, list[str]]] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.now, server_default=func.now()
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), server_default=func.now()
     )

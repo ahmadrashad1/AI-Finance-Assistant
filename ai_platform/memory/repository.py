@@ -85,7 +85,6 @@ class ConversationRepository:
         )
         self._db.add(summary)
         await self._db.flush()
-        await self._db.refresh(summary)
         return summary
 
     async def list_recent_turn_summaries(
