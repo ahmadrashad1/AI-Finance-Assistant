@@ -421,3 +421,44 @@ async def test_eval_those_follow_up_resolves_customer_name_via_piping(
 
     tool_call_events = [e for e in events if e.type == "tool_call"]
     assert [e.tool for e in tool_call_events] == ["get_customer", "get_overdue_invoices"]
+
+
+@pytest.mark.asyncio
+async def test_eval_payment_prioritization_plans_vendor_invoices_and_cash_position(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """Milestone 7 acceptance: 'Which invoices should I pay first?' has no
+    single tool - the planner must retrieve both get_vendor_invoices and
+    get_cash_position (independent, no piping needed) so Phase 2 can
+    reason over the combined data."""
+    llm_service = FakeLLMService(
+        tokens=["Based on due dates and cash on hand, pay X first."],
+        plan_response=(
+            '{"tool_calls": ['
+            '{"tool": "get_vendor_invoices", "parameters": {}}, '
+            '{"tool": "get_cash_position", "parameters": {}}'
+            ']}'
+        ),
+    )
+    workflow = _make_workflow(db_session, llm_service)
+
+    events = [
+        e
+        async for e in workflow.run(
+            ChatRequest(
+                session_id="eval-payment-priority-session",
+                message="Which invoices should I pay first?",
+            )
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["get_vendor_invoices", "get_cash_position"]
+
+    assert llm_service.last_message is not None
+    payload_json = llm_service.last_message.split("\n\n[Tool results — use only this data]\n")[1]
+    import json as json_module
+
+    payload = json_module.loads(payload_json)
+    assert {result["tool"] for result in payload} == {"get_vendor_invoices", "get_cash_position"}
