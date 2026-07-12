@@ -196,3 +196,36 @@ async def test_list_outstanding_vendor_invoices_defaults_as_of_to_today(
 ) -> None:
     records = await _service(db_session).list_outstanding_vendor_invoices()
     assert records == []
+
+
+@pytest.mark.asyncio
+async def test_list_outstanding_vendor_invoices_filters_by_vendor_id(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    vendor_a = await _make_vendor(db_session, "VEND-4201", "Summit Traders")
+    vendor_b = await _make_vendor(db_session, "VEND-4202", "Cascade Logistics")
+    invoice_repo = VendorInvoiceRepository(db_session)
+    await invoice_repo.create(
+        vendor_invoice_number="VINV-5201", vendor_id=vendor_a.id, purchase_order_id=None,
+        issue_date=date(2026, 6, 1), due_date=date(2026, 7, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await invoice_repo.create(
+        vendor_invoice_number="VINV-5202", vendor_id=vendor_b.id, purchase_order_id=None,
+        issue_date=date(2026, 6, 1), due_date=date(2026, 7, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    records = await _service(db_session).list_outstanding_vendor_invoices(
+        vendor_id="VEND-4201", as_of=date(2026, 7, 8)
+    )
+    assert [r.vendor_invoice_number for r in records] == ["VINV-5201"]
+
+
+@pytest.mark.asyncio
+async def test_list_outstanding_vendor_invoices_unknown_vendor_id_raises_value_error(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    with pytest.raises(ValueError, match="Vendor not found"):
+        await _service(db_session).list_outstanding_vendor_invoices(vendor_id="VEND-DOES-NOT-EXIST")

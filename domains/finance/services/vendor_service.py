@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -86,12 +87,19 @@ class VendorService:
         return CashPosition(balance=balance, as_of_date=effective_as_of)
 
     async def list_outstanding_vendor_invoices(
-        self, as_of: date | None = None
+        self, *, vendor_id: str | None = None, as_of: date | None = None
     ) -> list[VendorInvoiceRecord]:
+        resolved_vendor_id: uuid.UUID | None = None
+        if vendor_id is not None:
+            vendor = await self._vendor_repository.get_by_code(vendor_id)
+            if vendor is None:
+                raise ValueError(f"Vendor not found: {vendor_id}")
+            resolved_vendor_id = vendor.id
+
         effective_as_of = as_of if as_of is not None else date.today()
 
         invoices = await self._vendor_invoice_repository.list_by_statuses(
-            statuses=OUTSTANDING_VENDOR_INVOICE_STATUSES
+            statuses=OUTSTANDING_VENDOR_INVOICE_STATUSES, vendor_id=resolved_vendor_id
         )
         vendors = await self._vendor_repository.list_all()
         vendor_names = {vendor.id: vendor.company_name for vendor in vendors}

@@ -42,3 +42,9 @@ balance from the real bank-account ledger (`CashRepository`). Takes no
 parameters. Used alongside `get_vendor_invoices` when the user asks a
 reasoning question with no single-tool answer (e.g. "which invoices
 should I pay first?") - Phase 2 reasons over both results together.
+
+`get_vendor_invoices` (Milestone 7) returns the company's outstanding
+vendor invoices (status sent/partially_paid/overdue), sorted by due
+date soonest-first, optionally filtered to one vendor by `vendor_id`
+(business code). Used alongside `get_cash_position` for
+payment-prioritization reasoning questions.
