@@ -27,6 +27,18 @@ class CashPosition:
     as_of_date: date
 
 
+@dataclass(frozen=True)
+class VendorInvoiceRecord:
+    vendor_invoice_number: str
+    vendor_name: str
+    issue_date: date
+    due_date: date
+    total: Decimal
+    balance: Decimal
+    days_until_due: int
+    status: str
+
+
 class VendorService:
     """Business logic for accounts-payable vendor obligations and the
     company's cash position.
@@ -72,3 +84,30 @@ class VendorService:
         effective_as_of = as_of if as_of is not None else date.today()
         balance = await self._cash_repository.get_balance_as_of(effective_as_of)
         return CashPosition(balance=balance, as_of_date=effective_as_of)
+
+    async def list_outstanding_vendor_invoices(
+        self, as_of: date | None = None
+    ) -> list[VendorInvoiceRecord]:
+        effective_as_of = as_of if as_of is not None else date.today()
+
+        invoices = await self._vendor_invoice_repository.list_by_statuses(
+            statuses=OUTSTANDING_VENDOR_INVOICE_STATUSES
+        )
+        vendors = await self._vendor_repository.list_all()
+        vendor_names = {vendor.id: vendor.company_name for vendor in vendors}
+
+        records = [
+            VendorInvoiceRecord(
+                vendor_invoice_number=invoice.vendor_invoice_number,
+                vendor_name=vendor_names.get(invoice.vendor_id, "Unknown vendor"),
+                issue_date=invoice.issue_date,
+                due_date=invoice.due_date,
+                total=invoice.total,
+                balance=invoice.balance,
+                days_until_due=(invoice.due_date - effective_as_of).days,
+                status=invoice.status,
+            )
+            for invoice in invoices
+        ]
+        records.sort(key=lambda record: record.due_date)
+        return records

@@ -10,7 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domains.finance.repositories.cash_repository import CashRepository
 from domains.finance.repositories.vendor_invoice_repository import VendorInvoiceRepository
 from domains.finance.repositories.vendor_repository import VendorRepository
-from domains.finance.services.vendor_service import CashPosition, VendorBalance, VendorService
+from domains.finance.services.vendor_service import (
+    CashPosition,
+    VendorBalance,
+    VendorService,
+)
 
 
 async def _make_vendor(db_session: AsyncSession, code: str, name: str) -> object:
@@ -129,3 +133,66 @@ async def test_get_cash_position_accepts_an_explicit_as_of(
 
     assert position.balance == Decimal("10000.00")
     assert position.as_of_date == date(2026, 3, 1)
+
+
+@pytest.mark.asyncio
+async def test_list_outstanding_vendor_invoices_excludes_paid_draft_cancelled(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    vendor = await _make_vendor(db_session, "VEND-4001", "Summit Traders")
+    invoice_repo = VendorInvoiceRepository(db_session)
+    await invoice_repo.create(
+        vendor_invoice_number="VINV-5001", vendor_id=vendor.id, purchase_order_id=None,
+        issue_date=date(2026, 6, 1), due_date=date(2026, 7, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    for number, status in [
+        ("VINV-5002", "paid"), ("VINV-5003", "draft"), ("VINV-5004", "cancelled"),
+    ]:
+        await invoice_repo.create(
+            vendor_invoice_number=number, vendor_id=vendor.id, purchase_order_id=None,
+            issue_date=date(2026, 6, 1), due_date=date(2026, 7, 1), status=status,
+            subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+        )
+    await db_session.commit()
+
+    records = await _service(db_session).list_outstanding_vendor_invoices(
+        as_of=date(2026, 7, 8)
+    )
+
+    assert [r.vendor_invoice_number for r in records] == ["VINV-5001"]
+    assert records[0].vendor_name == "Summit Traders"
+    assert records[0].days_until_due == (date(2026, 7, 1) - date(2026, 7, 8)).days == -7
+
+
+@pytest.mark.asyncio
+async def test_list_outstanding_vendor_invoices_sorts_by_due_date_ascending(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    vendor = await _make_vendor(db_session, "VEND-4101", "Summit Traders")
+    invoice_repo = VendorInvoiceRepository(db_session)
+    await invoice_repo.create(
+        vendor_invoice_number="VINV-5101", vendor_id=vendor.id, purchase_order_id=None,
+        issue_date=date(2026, 6, 1), due_date=date(2026, 8, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await invoice_repo.create(
+        vendor_invoice_number="VINV-5102", vendor_id=vendor.id, purchase_order_id=None,
+        issue_date=date(2026, 6, 1), due_date=date(2026, 6, 15), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    await db_session.commit()
+
+    records = await _service(db_session).list_outstanding_vendor_invoices(
+        as_of=date(2026, 7, 8)
+    )
+
+    assert [r.vendor_invoice_number for r in records] == ["VINV-5102", "VINV-5101"]
+
+
+@pytest.mark.asyncio
+async def test_list_outstanding_vendor_invoices_defaults_as_of_to_today(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    records = await _service(db_session).list_outstanding_vendor_invoices()
+    assert records == []
