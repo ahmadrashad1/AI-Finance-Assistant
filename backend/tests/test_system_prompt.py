@@ -2,9 +2,9 @@ from ai_platform.prompts.system_prompt import AUTHOR, CHANGELOG, SYSTEM_PROMPT, 
 
 
 def test_system_prompt_is_versioned() -> None:
-    assert VERSION == "1.3.0"
+    assert VERSION == "1.4.0"
     assert AUTHOR
-    assert len(CHANGELOG) >= 4
+    assert len(CHANGELOG) >= 5
 
 
 def test_system_prompt_never_invents_finance_data() -> None:
@@ -26,3 +26,9 @@ def test_system_prompt_instructs_markdown_tables_for_lists() -> None:
 def test_system_prompt_instructs_handling_of_truncated_results() -> None:
     assert "_truncated" in SYSTEM_PROMPT
     assert "summary" in SYSTEM_PROMPT.lower()
+
+
+def test_system_prompt_instructs_grounding_when_reasoning_over_combined_results() -> None:
+    lowered = SYSTEM_PROMPT.lower()
+    assert "more than one tool result" in lowered or "multiple tool results" in lowered
+    assert "recommend" in lowered or "priorit" in lowered

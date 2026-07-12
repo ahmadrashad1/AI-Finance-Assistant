@@ -1,6 +1,6 @@
 """Versioned system prompt for the general chat assistant.
 
-Version: 1.3.0
+Version: 1.4.0
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-05): Initial version. General-purpose finance-assistant
@@ -19,11 +19,18 @@ Changelog:
     result_shaping.py). Instructs the model to say so and quote the
     result's summary block for true totals whenever a result is marked
     truncated, rather than only summing the rows shown.
+  - 1.4.0 (2026-07-12): Milestone 7 adds multi-tool reasoning questions
+    (e.g. "which invoices should I pay first?") where more than one tool
+    result is provided together with no single answer already computed.
+    Instructs the model to ground every ranking/recommendation strictly
+    in the provided figures and never state or compute a number absent
+    from them, reinforcing the existing hallucination-prevention rule
+    for this specific, higher-stakes case.
 """
 
 from __future__ import annotations
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-05): Initial version - general chat persona, no tools.",
@@ -35,6 +42,12 @@ CHANGELOG = [
     "1.3.0 (2026-07-11): Instruct the model to acknowledge truncated tool "
     "results and quote the summary block's true totals, now that large "
     "result sets are capped before reaching this prompt.",
+    "1.4.0 (2026-07-12): Instruct the model to ground reasoning/"
+    "recommendation answers (e.g. payment prioritization) strictly in the "
+    "figures present across all provided tool results, never inventing or "
+    "computing a number that isn't already there, now that a turn can "
+    "carry more than one tool result with no single tool answering the "
+    "question.",
 ]
 
 SYSTEM_PROMPT = (
@@ -51,5 +64,12 @@ SYSTEM_PROMPT = (
     "If a tool result includes \"_truncated\": true, tell the user you're "
     "showing only the top records (by materiality or urgency) out of the "
     "total count, and give the true overall totals from the result's "
-    "summary block rather than only summing the rows shown."
+    "summary block rather than only summing the rows shown. "
+    "When more than one tool result is provided together for a question "
+    "with no single tool answer (e.g. ranking or recommending which "
+    "invoices to pay first), reason across all of them but ground every "
+    "comparison, ranking, or recommendation strictly in the figures "
+    "actually present - due dates, amounts, balances, cash figures - and "
+    "explain the reasoning using those figures; never state or compute a "
+    "number that isn't already present in the provided results."
 )
