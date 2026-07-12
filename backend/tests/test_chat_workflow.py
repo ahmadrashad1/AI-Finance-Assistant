@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.orchestration.chat_workflow import ChatRequest, ChatWorkflow
+from ai_platform.orchestration.execution_planner import ExecutionPlanner
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.tool_registry.executor import ToolExecutor
@@ -39,6 +40,7 @@ def _make_workflow(
         prompt_builder=prompt_builder,
         llm_service=llm_service,
         planner=planner,
+        execution_planner=ExecutionPlanner(),
         tool_executor=tool_executor,
         request_id="req-test",
     )

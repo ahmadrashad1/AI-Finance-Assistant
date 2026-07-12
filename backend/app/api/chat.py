@@ -13,6 +13,7 @@ from ai_platform.llm.service import AnthropicLLMService, GroqLLMService, LLMServ
 from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.orchestration.chat_workflow import ChatEvent, ChatRequest, ChatWorkflow
+from ai_platform.orchestration.execution_planner import ExecutionPlanner
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.tool_registry.executor import ToolExecutor
@@ -85,6 +86,7 @@ async def post_chat(
         prompt_builder=prompt_builder,
         llm_service=llm_service,
         planner=planner,
+        execution_planner=ExecutionPlanner(),
         tool_executor=tool_executor,
         request_id=request_id_ctx_var.get(),
     )

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from ai_platform.llm.service import LLMService
 from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
+from ai_platform.orchestration.execution_planner import ExecutionPlanner
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.orchestration.result_shaping import cap_result_for_prompt
@@ -63,6 +64,7 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
         prompt_builder: PromptBuilder,
         llm_service: LLMService,
         planner: Planner,
+        execution_planner: ExecutionPlanner,
         tool_executor: ToolExecutor,
         request_id: str | None,
     ) -> None:
@@ -71,6 +73,7 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
         self._prompt_builder = prompt_builder
         self._llm_service = llm_service
         self._planner = planner
+        self._execution_planner = execution_planner
         self._tool_executor = tool_executor
         self._request_id = request_id
 
@@ -115,11 +118,27 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
             outcomes: list[ToolExecutionOutcome] = []
             for tool_call in plan.tool_calls or []:
                 yield ChatEvent(type="tool_call", tool=tool_call.tool)
+                resolved_parameters, resolution_error = (
+                    self._execution_planner.resolve_parameters(tool_call.parameters, outcomes)
+                )
+                if resolution_error is not None:
+                    outcomes.append(
+                        ToolExecutionOutcome(
+                            tool=tool_call.tool,
+                            parameters=tool_call.parameters,
+                            result=None,
+                            status="error",
+                            error_message=resolution_error,
+                            duration_ms=0,
+                        )
+                    )
+                    continue
+                assert resolved_parameters is not None
                 outcome = await self._tool_executor.execute(
                     request_id=self._request_id,
                     conversation_id=conversation_id,
                     tool=tool_call.tool,
-                    parameters=tool_call.parameters,
+                    parameters=resolved_parameters,
                 )
                 outcomes.append(outcome)
 
