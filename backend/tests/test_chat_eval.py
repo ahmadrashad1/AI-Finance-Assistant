@@ -23,10 +23,13 @@ from ai_platform.tool_registry.executor import ToolExecutor
 from ai_platform.tool_registry.registry import ToolRegistry
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
+from domains.finance.tools.get_cash_position import GET_CASH_POSITION_TOOL
+from domains.finance.tools.get_customer import GET_CUSTOMER_TOOL
 from domains.finance.tools.get_customer_balance import GET_CUSTOMER_BALANCE_TOOL
 from domains.finance.tools.get_overdue_invoices import GET_OVERDUE_INVOICES_TOOL
 from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
 from domains.finance.tools.get_vendor_balance import GET_VENDOR_BALANCE_TOOL
+from domains.finance.tools.get_vendor_invoices import GET_VENDOR_INVOICES_TOOL
 from domains.finance.tools.search_invoices import SEARCH_INVOICES_TOOL
 from tests.fakes import FakeLLMService
 
@@ -40,6 +43,9 @@ def _make_workflow(db_session: AsyncSession, llm_service: FakeLLMService) -> Cha
     registry.register(GET_OVERDUE_INVOICES_TOOL)
     registry.register(GET_CUSTOMER_BALANCE_TOOL)
     registry.register(GET_VENDOR_BALANCE_TOOL)
+    registry.register(GET_CASH_POSITION_TOOL)
+    registry.register(GET_VENDOR_INVOICES_TOOL)
+    registry.register(GET_CUSTOMER_TOOL)
     execution_repository = ToolExecutionRepository(db_session)
     tool_executor = ToolExecutor(registry, execution_repository, db_session)
     prompt_builder = PromptBuilder()
@@ -362,3 +368,56 @@ async def test_eval_vendor_balance_phrasings_all_select_get_vendor_balance(
 
     tool_call_events = [e for e in events if e.type == "tool_call"]
     assert [e.tool for e in tool_call_events] == ["get_vendor_balance"]
+
+
+@pytest.mark.asyncio
+async def test_eval_those_follow_up_resolves_customer_name_via_piping(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """Milestone 7 acceptance: 'Show overdue invoices' followed by 'Which
+    of those belong to ABC Industries?' must plan a two-step
+    get_customer -> get_overdue_invoices chain for the follow-up, proving
+    the planner can combine memory (recognizing 'those' refers to the
+    prior overdue-invoices turn) with parameter piping (resolving the
+    company name to a business code) in one plan."""
+    llm_service_1 = FakeLLMService(
+        tokens=["Here are the overdue invoices."],
+        plan_response='{"tool_calls": [{"tool": "get_overdue_invoices", "parameters": {}}]}',
+    )
+    workflow_1 = _make_workflow(db_session, llm_service_1)
+
+    conversation_id: str | None = None
+    async for event in workflow_1.run(
+        ChatRequest(session_id="eval-those-session", message="Show overdue invoices")
+    ):
+        if event.type == "done":
+            conversation_id = event.conversation_id
+    await db_session.commit()
+    assert conversation_id is not None
+
+    llm_service_2 = FakeLLMService(
+        tokens=["Just that one."],
+        plan_response=(
+            '{"tool_calls": ['
+            '{"tool": "get_customer", "parameters": {"customer_name": "ABC Industries"}}, '
+            '{"tool": "get_overdue_invoices", '
+            '"parameters": {"customer_id": "$step0.customer_code"}}'
+            ']}'
+        ),
+    )
+    workflow_2 = _make_workflow(db_session, llm_service_2)
+
+    events = [
+        e
+        async for e in workflow_2.run(
+            ChatRequest(
+                session_id="eval-those-session",
+                message="Which of those belong to ABC Industries?",
+                conversation_id=conversation_id,
+            )
+        )
+    ]
+    await db_session.commit()
+
+    tool_call_events = [e for e in events if e.type == "tool_call"]
+    assert [e.tool for e in tool_call_events] == ["get_customer", "get_overdue_invoices"]
