@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from ai_platform.llm.service import LLMService
 from ai_platform.memory.conversation_memory import ConversationMemory
+from ai_platform.memory.entity_extraction import extract_entities
 from ai_platform.memory.repository import ConversationRepository
 from ai_platform.orchestration.execution_planner import ExecutionPlanner
 from ai_platform.orchestration.planner import Planner
@@ -103,9 +104,12 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
             conversation_token = conversation_id_ctx_var.set(context.conversation_id)
 
             history = await self._memory.get_context_window(conversation_id)
+            recent_turn_summaries = await self._memory.get_recent_turn_summaries(conversation_id)
             await self._repository.add_message(conversation_id, "user", input_data.message)
 
-            plan = await self._planner.create_plan(history, input_data.message)
+            plan = await self._planner.create_plan(
+                history, input_data.message, recent_turn_summaries
+            )
 
             if plan.clarification_needed is not None:
                 yield ChatEvent(type="token", content=plan.clarification_needed)
@@ -141,6 +145,25 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
                     parameters=resolved_parameters,
                 )
                 outcomes.append(outcome)
+
+            successful_tool_calls = [
+                {"tool": outcome.tool, "parameters": outcome.parameters}
+                for outcome in outcomes
+                if outcome.status == "success"
+            ]
+            if successful_tool_calls:
+                merged_entities: dict[str, list[str]] = {}
+                for outcome in outcomes:
+                    if outcome.status != "success" or outcome.result is None:
+                        continue
+                    for key, values in extract_entities(outcome.tool, outcome.result).items():
+                        bucket = merged_entities.setdefault(key, [])
+                        for value in values:
+                            if value not in bucket:
+                                bucket.append(value)
+                await self._repository.record_turn_summary(
+                    conversation_id, tool_calls=successful_tool_calls, entities=merged_entities
+                )
 
             prompt = self._prompt_builder.build(SYSTEM_PROMPT, history)
             llm_message = _build_response_message(input_data.message, outcomes)

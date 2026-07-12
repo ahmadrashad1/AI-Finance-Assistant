@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_platform.memory.conversation_memory import HistoryMessage
+from ai_platform.memory.conversation_memory import HistoryMessage, TurnSummary
 from ai_platform.orchestration.planner import Plan, Planner, ToolCall
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.tool_registry.registry import ToolRegistry
@@ -117,3 +117,36 @@ async def test_create_plan_accepts_exactly_five_tool_calls() -> None:
 
     assert plan.tool_calls is not None
     assert len(plan.tool_calls) == 5
+
+
+@pytest.mark.asyncio
+async def test_create_plan_renders_recent_turn_summaries_into_the_prompt() -> None:
+    llm_service = FakeLLMService(tokens=["unused"], plan_response='{"direct_answer": true}')
+    registry = ToolRegistry()
+    registry.register(GET_CURRENT_DATE_TOOL)
+    planner = Planner(llm_service, registry, PromptBuilder())
+    summaries = [
+        TurnSummary(
+            tool_calls=[{"tool": "get_overdue_invoices", "parameters": {"minimum_days": 30}}],
+            entities={"customer_name": ["Crestline Holdings"]},
+        )
+    ]
+
+    await planner.create_plan([], "anything", summaries)
+
+    assert llm_service.last_complete_system is not None
+    assert "get_overdue_invoices" in llm_service.last_complete_system
+    assert "Crestline Holdings" in llm_service.last_complete_system
+
+
+@pytest.mark.asyncio
+async def test_create_plan_with_no_recent_turn_summaries_omits_the_activity_block() -> None:
+    llm_service = FakeLLMService(tokens=["unused"], plan_response='{"direct_answer": true}')
+    registry = ToolRegistry()
+    registry.register(GET_CURRENT_DATE_TOOL)
+    planner = Planner(llm_service, registry, PromptBuilder())
+
+    await planner.create_plan([], "anything")
+
+    assert llm_service.last_complete_system is not None
+    assert "Recent tool activity" not in llm_service.last_complete_system

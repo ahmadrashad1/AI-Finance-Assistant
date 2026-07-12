@@ -87,5 +87,8 @@ PLANNING_SYSTEM_PROMPT_TEMPLATE = (
 )
 
 
-def build_planning_prompt(tools_json: str) -> str:
-    return PLANNING_SYSTEM_PROMPT_TEMPLATE.format(tools_json=tools_json)
+def build_planning_prompt(tools_json: str, recent_activity: str = "") -> str:
+    prompt = PLANNING_SYSTEM_PROMPT_TEMPLATE.format(tools_json=tools_json)
+    if recent_activity:
+        prompt = f"{prompt}\n{recent_activity}\n"
+    return prompt

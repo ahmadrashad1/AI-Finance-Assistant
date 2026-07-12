@@ -47,3 +47,19 @@ def test_build_planning_prompt_teaches_customer_and_vendor_balance_phrasings() -
     assert "get_vendor_balance" in prompt
     assert "how much does" in prompt
     assert "what do we owe" in prompt
+
+
+def test_build_planning_prompt_with_no_recent_activity_is_unchanged() -> None:
+    with_default = build_planning_prompt('[{"name": "get_current_date"}]')
+    with_explicit_empty = build_planning_prompt('[{"name": "get_current_date"}]', "")
+    assert with_default == with_explicit_empty
+
+
+def test_build_planning_prompt_includes_recent_activity_when_provided() -> None:
+    prompt = build_planning_prompt(
+        '[{"name": "get_current_date"}]',
+        "Recent tool activity:\n- get_overdue_invoices(minimum_days=30) -> "
+        "customer_name: ['Crestline Holdings']",
+    )
+    assert "Recent tool activity:" in prompt
+    assert "Crestline Holdings" in prompt

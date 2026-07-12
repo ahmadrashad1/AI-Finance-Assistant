@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic import ValidationError as PydanticValidationError
 
 from ai_platform.llm.service import LLMService
-from ai_platform.memory.conversation_memory import HistoryMessage
+from ai_platform.memory.conversation_memory import HistoryMessage, TurnSummary
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.prompts.planning_prompt import build_planning_prompt
 from ai_platform.tool_registry.registry import ToolRegistry
@@ -55,6 +55,24 @@ def _strip_code_fences(text: str) -> str:
     return stripped.strip()
 
 
+def _render_recent_activity(summaries: list[TurnSummary]) -> str:
+    if not summaries:
+        return ""
+    lines = ["Recent tool activity:"]
+    for summary in reversed(summaries):
+        calls = ", ".join(
+            f"{call['tool']}({', '.join(f'{k}={v!r}' for k, v in call['parameters'].items())})"
+            for call in summary.tool_calls
+        )
+        if summary.entities:
+            entity_parts = [f"{key}: {values}" for key, values in summary.entities.items()]
+            entities_text = "; ".join(entity_parts)
+        else:
+            entities_text = "no entities"
+        lines.append(f"- {calls} -> {entities_text}")
+    return "\n".join(lines)
+
+
 class Planner:
     def __init__(
         self, llm_service: LLMService, registry: ToolRegistry, prompt_builder: PromptBuilder
@@ -63,9 +81,15 @@ class Planner:
         self._registry = registry
         self._prompt_builder = prompt_builder
 
-    async def create_plan(self, history: list[HistoryMessage], message: str) -> Plan:
+    async def create_plan(
+        self,
+        history: list[HistoryMessage],
+        message: str,
+        recent_turn_summaries: list[TurnSummary] | None = None,
+    ) -> Plan:
         tools_json = json.dumps(self._registry.to_planner_json(), indent=2)
-        system = build_planning_prompt(tools_json)
+        recent_activity = _render_recent_activity(recent_turn_summaries or [])
+        system = build_planning_prompt(tools_json, recent_activity)
         prompt = self._prompt_builder.build(system, history)
         raw = await self._llm_service.complete(prompt.system, prompt.messages, message)
         cleaned = _strip_code_fences(raw)
