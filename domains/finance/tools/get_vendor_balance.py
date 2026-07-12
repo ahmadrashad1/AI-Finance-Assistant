@@ -6,6 +6,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 from ai_platform.tool_registry.registry import ToolContext, ToolSpec
+from domains.finance.repositories.cash_repository import CashRepository
 from domains.finance.repositories.vendor_invoice_repository import VendorInvoiceRepository
 from domains.finance.repositories.vendor_repository import VendorRepository
 from domains.finance.services.vendor_service import VendorService
@@ -28,7 +29,11 @@ class GetVendorBalanceResult(BaseModel):
 async def get_vendor_balance_handler(
     params: GetVendorBalanceParams, context: ToolContext
 ) -> GetVendorBalanceResult:
-    service = VendorService(VendorInvoiceRepository(context.db), VendorRepository(context.db))
+    service = VendorService(
+        VendorInvoiceRepository(context.db),
+        VendorRepository(context.db),
+        CashRepository(context.db),
+    )
     balance = await service.get_vendor_balance(vendor_name=params.vendor_name)
     return GetVendorBalanceResult(
         vendor_code=balance.vendor_code,

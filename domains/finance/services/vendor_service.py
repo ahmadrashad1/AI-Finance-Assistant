@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Final
 
+from domains.finance.repositories.cash_repository import CashRepository
 from domains.finance.repositories.vendor_invoice_repository import VendorInvoiceRepository
 from domains.finance.repositories.vendor_repository import VendorRepository
 
@@ -20,23 +21,33 @@ class VendorBalance:
     oldest_due_date: date | None
 
 
+@dataclass(frozen=True)
+class CashPosition:
+    balance: Decimal
+    as_of_date: date
+
+
 class VendorService:
-    """Business logic for accounts-payable vendor obligations.
+    """Business logic for accounts-payable vendor obligations and the
+    company's cash position.
 
     get_vendor_balance sums a vendor's outstanding vendor_invoices.balance
     (status sent/partially_paid/overdue - the AP mirror of AR's
-    UNPAID_STATUSES). Milestone 6 originally approximated this from
-    purchase_orders.total_amount, before real vendor invoices existed;
-    Milestone 7 replaced that approximation with the real ledger.
+    UNPAID_STATUSES). get_cash_position reports the company's real cash
+    ledger balance as of a date (defaults to today - a live, ongoing
+    figure, same reasoning as InvoiceService.get_unpaid_invoices's as_of
+    default).
     """
 
     def __init__(
         self,
         vendor_invoice_repository: VendorInvoiceRepository,
         vendor_repository: VendorRepository,
+        cash_repository: CashRepository,
     ) -> None:
         self._vendor_invoice_repository = vendor_invoice_repository
         self._vendor_repository = vendor_repository
+        self._cash_repository = cash_repository
 
     async def get_vendor_balance(self, *, vendor_name: str) -> VendorBalance:
         vendor = await self._vendor_repository.get_by_name(vendor_name)
@@ -56,3 +67,8 @@ class VendorService:
             open_invoice_count=len(invoices),
             oldest_due_date=oldest_due_date,
         )
+
+    async def get_cash_position(self, as_of: date | None = None) -> CashPosition:
+        effective_as_of = as_of if as_of is not None else date.today()
+        balance = await self._cash_repository.get_balance_as_of(effective_as_of)
+        return CashPosition(balance=balance, as_of_date=effective_as_of)
