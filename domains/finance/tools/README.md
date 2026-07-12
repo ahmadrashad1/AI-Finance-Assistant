@@ -48,3 +48,10 @@ vendor invoices (status sent/partially_paid/overdue), sorted by due
 date soonest-first, optionally filtered to one vendor by `vendor_id`
 (business code). Used alongside `get_cash_position` for
 payment-prioritization reasoning questions.
+
+`get_customer` (Milestone 7) is a pure name-to-code identity lookup - no
+balance, no invoices. It exists specifically so the planner can chain
+it into a later tool call that needs a `customer_id` business code but
+the user only gave a company name (see `ExecutionPlanner`'s parameter
+piping) - e.g. resolving "ABC Industries" before filtering
+`get_overdue_invoices(customer_id=...)` by it.

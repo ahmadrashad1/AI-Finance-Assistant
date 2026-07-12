@@ -5,6 +5,7 @@ from functools import lru_cache
 from ai_platform.tool_registry.registry import ToolRegistry
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
 from domains.finance.tools.get_cash_position import GET_CASH_POSITION_TOOL
+from domains.finance.tools.get_customer import GET_CUSTOMER_TOOL
 from domains.finance.tools.get_customer_balance import GET_CUSTOMER_BALANCE_TOOL
 from domains.finance.tools.get_overdue_invoices import GET_OVERDUE_INVOICES_TOOL
 from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
@@ -24,4 +25,5 @@ def get_tool_registry() -> ToolRegistry:
     registry.register(GET_VENDOR_BALANCE_TOOL)
     registry.register(GET_CASH_POSITION_TOOL)
     registry.register(GET_VENDOR_INVOICES_TOOL)
+    registry.register(GET_CUSTOMER_TOOL)
     return registry
