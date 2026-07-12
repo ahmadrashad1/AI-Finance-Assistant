@@ -4,9 +4,9 @@ from ai_platform.prompts.planning_prompt import AUTHOR, CHANGELOG, VERSION, buil
 
 
 def test_planning_prompt_is_versioned() -> None:
-    assert VERSION == "1.2.0"
+    assert VERSION == "1.3.0"
     assert AUTHOR
-    assert len(CHANGELOG) >= 3
+    assert len(CHANGELOG) >= 4
 
 
 def test_build_planning_prompt_embeds_tool_specs_and_schema_shapes() -> None:
@@ -63,3 +63,27 @@ def test_build_planning_prompt_includes_recent_activity_when_provided() -> None:
     )
     assert "Recent tool activity:" in prompt
     assert "Crestline Holdings" in prompt
+
+
+def test_build_planning_prompt_teaches_parameter_piping_syntax() -> None:
+    prompt = build_planning_prompt("[]")
+    assert "$step0.customer_code" in prompt
+    assert "get_customer" in prompt
+
+
+def test_build_planning_prompt_states_the_five_tool_call_cap() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "5 tool calls" in prompt
+
+
+def test_build_planning_prompt_teaches_the_reasoning_query_pattern() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "get_vendor_invoices" in prompt
+    assert "get_cash_position" in prompt
+    assert "which invoices should i pay first" in prompt
+
+
+def test_build_planning_prompt_disambiguates_get_customer_from_get_customer_balance() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "get_customer" in prompt
+    assert "get_customer_balance" in prompt

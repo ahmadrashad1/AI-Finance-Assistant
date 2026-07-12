@@ -1,6 +1,6 @@
 """Versioned system prompt for the Phase 1 planner.
 
-Version: 1.2.0
+Version: 1.3.0
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-07): Initial version. Three-branch planning contract
@@ -17,11 +17,20 @@ Changelog:
     disambiguation rule between get_unpaid_invoices and
     get_overdue_invoices, since both can plausibly describe "who owes
     money" style requests.
+  - 1.3.0 (2026-07-12): Milestone 7 teaches multi-step plans: the
+    "$stepN.field" parameter-piping syntax (with a worked
+    get_customer -> get_overdue_invoices example resolving a company
+    name to a business code before scoping a follow-up), the 5-tool-call
+    cap, the reasoning-query pattern (plan get_vendor_invoices and
+    get_cash_position together, no piping, for "which invoices should I
+    pay first?" style questions), and a disambiguation rule between the
+    new get_customer (pure code lookup) and get_customer_balance
+    (computes a balance).
 """
 
 from __future__ import annotations
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-07): Initial version - three-branch planning contract "
@@ -31,6 +40,11 @@ CHANGELOG = [
     "1.2.0 (2026-07-11): Add search_invoices/get_overdue_invoices/"
     "get_customer_balance/get_vendor_balance paraphrase examples and an "
     "unpaid-vs-overdue disambiguation rule.",
+    "1.3.0 (2026-07-12): Teach multi-step plans - $stepN.field parameter "
+    "piping (worked get_customer -> get_overdue_invoices example), the "
+    "5-tool-call cap, the get_vendor_invoices + get_cash_position "
+    "reasoning-query pattern, and a get_customer-vs-get_customer_balance "
+    "disambiguation rule.",
 ]
 
 PLANNING_SYSTEM_PROMPT_TEMPLATE = (
@@ -82,6 +96,35 @@ PLANNING_SYSTEM_PROMPT_TEMPLATE = (
     "with Summit Traders?\" select get_vendor_balance with "
     "vendor_name='Summit Traders' - same naming rule as "
     "get_customer_balance.\n"
+    "- A plan may include more than one tool call, in order, and a later "
+    "call's parameter value may reference an earlier call's result with "
+    "the exact string \"$stepN.field\" (N is the 0-based index into this "
+    "same tool_calls list, field is a field name from that step's result). "
+    "Use this whenever a later tool needs a business code (e.g. "
+    "customer_id) but the user only gave a plain-English name, and no "
+    "other tool call already produced that code this turn. Worked "
+    "example - 'Which of those belong to ABC Industries?' after a prior "
+    "invoices list, where ABC Industries hasn't been resolved to a code "
+    "yet: "
+    '{{"tool_calls": [{{"tool": "get_customer", "parameters": '
+    '{{"customer_name": "ABC Industries"}}}}, {{"tool": '
+    '"get_overdue_invoices", "parameters": {{"customer_id": '
+    '"$step0.customer_code"}}}}]}}. '
+    "Carry forward any filter the user already applied in a prior turn "
+    "(e.g. a day threshold) alongside the new scope, using the recent "
+    "tool activity shown above the tool list, when present.\n"
+    "- Plan at most 5 tool calls in one tool_calls list. If a request "
+    "would genuinely need more than 5, ask a clarifying question instead "
+    "of planning a longer list.\n"
+    "- 'Which invoices should I pay first?', 'What should we pay now?', "
+    "or any question weighing what to pay against available money has no "
+    "single tool that answers it - plan get_vendor_invoices and "
+    "get_cash_position together (they don't depend on each other, so no "
+    "$stepN.field piping is needed) so the response stage can reason over "
+    "both together.\n"
+    "- When a later step only needs a customer's business code (not their "
+    "balance), select get_customer - not get_customer_balance, which "
+    "computes an unpaid-invoice balance nobody asked for in that step.\n"
     "- Output ONLY the JSON object. No explanation, no markdown fences, "
     "no extra text.\n"
 )
