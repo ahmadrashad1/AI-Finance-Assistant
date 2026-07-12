@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_sessionmaker
 from domains.finance.models import (
+    BankAccountModel,
+    CashTransactionModel,
     CustomerModel,
     DepartmentModel,
     EmployeeModel,
@@ -20,7 +22,9 @@ from domains.finance.models import (
     ProductModel,
     PurchaseOrderItemModel,
     PurchaseOrderModel,
+    VendorInvoiceModel,
     VendorModel,
+    VendorPaymentModel,
 )
 from domains.finance.simulator.constants import SIMULATION_TODAY
 
@@ -135,6 +139,112 @@ async def run_consistency_check(db: AsyncSession) -> list[str]:
             violations.append(
                 f"Invoice {invoice.invoice_number} has status 'overdue' but its due date/balance "
                 "don't justify it"
+            )
+
+    all_vendor_invoices = (await db.execute(select(VendorInvoiceModel))).scalars().all()
+    vendor_invoices_by_id = {vi.id: vi for vi in all_vendor_invoices}
+
+    for vendor_invoice in all_vendor_invoices:
+        if vendor_invoice.vendor_id not in vendor_ids:
+            violations.append(
+                f"Vendor invoice {vendor_invoice.vendor_invoice_number} references missing "
+                f"vendor {vendor_invoice.vendor_id}"
+            )
+        if (
+            vendor_invoice.purchase_order_id is not None
+            and vendor_invoice.purchase_order_id not in purchase_orders
+        ):
+            violations.append(
+                f"Vendor invoice {vendor_invoice.vendor_invoice_number} references missing "
+                f"purchase order {vendor_invoice.purchase_order_id}"
+            )
+
+    vendor_payments = (await db.execute(select(VendorPaymentModel))).scalars().all()
+    vendor_payments_by_invoice: dict[uuid.UUID, Decimal] = {}
+    for vendor_payment in vendor_payments:
+        if vendor_payment.vendor_invoice_id not in vendor_invoices_by_id:
+            violations.append(
+                f"Vendor payment {vendor_payment.id} references missing vendor invoice "
+                f"{vendor_payment.vendor_invoice_id}"
+            )
+            continue
+        vendor_payments_by_invoice[vendor_payment.vendor_invoice_id] = (
+            vendor_payments_by_invoice.get(vendor_payment.vendor_invoice_id, Decimal("0"))
+            + vendor_payment.amount
+        )
+
+    for vendor_invoice in all_vendor_invoices:
+        paid_total = vendor_payments_by_invoice.get(vendor_invoice.id, Decimal("0"))
+        expected_balance = vendor_invoice.total - paid_total
+        if vendor_invoice.balance != expected_balance:
+            violations.append(
+                f"Vendor invoice {vendor_invoice.vendor_invoice_number} balance "
+                f"{vendor_invoice.balance} != total {vendor_invoice.total} - payments "
+                f"{paid_total} = {expected_balance}"
+            )
+
+        if vendor_invoice.status == "cancelled":
+            continue
+        is_past_due_unpaid = (
+            vendor_invoice.due_date < SIMULATION_TODAY and vendor_invoice.balance > 0
+        )
+        if (
+            vendor_invoice.status != "draft"
+            and is_past_due_unpaid
+            and vendor_invoice.status != "overdue"
+        ):
+            violations.append(
+                f"Vendor invoice {vendor_invoice.vendor_invoice_number} is past due with "
+                f"balance {vendor_invoice.balance} but status is "
+                f"{vendor_invoice.status!r}, expected 'overdue'"
+            )
+        if vendor_invoice.status == "overdue" and not is_past_due_unpaid:
+            violations.append(
+                f"Vendor invoice {vendor_invoice.vendor_invoice_number} has status 'overdue' "
+                "but its due date/balance don't justify it"
+            )
+
+    bank_account_ids = set(
+        (await db.execute(select(BankAccountModel.id))).scalars().all()
+    )
+    payment_ids = {payment.id for payment in payments}
+    vendor_payment_ids = {vp.id for vp in vendor_payments}
+    cash_transactions = (await db.execute(select(CashTransactionModel))).scalars().all()
+    transactions_by_payment_id = {
+        ct.payment_id for ct in cash_transactions if ct.payment_id is not None
+    }
+    transactions_by_vendor_payment_id = {
+        ct.vendor_payment_id for ct in cash_transactions if ct.vendor_payment_id is not None
+    }
+
+    for transaction in cash_transactions:
+        if transaction.bank_account_id not in bank_account_ids:
+            violations.append(
+                f"Cash transaction {transaction.id} references missing bank account "
+                f"{transaction.bank_account_id}"
+            )
+        if transaction.payment_id is not None and transaction.payment_id not in payment_ids:
+            violations.append(
+                f"Cash transaction {transaction.id} references missing payment "
+                f"{transaction.payment_id}"
+            )
+        if (
+            transaction.vendor_payment_id is not None
+            and transaction.vendor_payment_id not in vendor_payment_ids
+        ):
+            violations.append(
+                f"Cash transaction {transaction.id} references missing vendor payment "
+                f"{transaction.vendor_payment_id}"
+            )
+
+    for payment in payments:
+        if payment.id not in transactions_by_payment_id:
+            violations.append(f"Payment {payment.id} has no corresponding cash transaction")
+
+    for vendor_payment in vendor_payments:
+        if vendor_payment.id not in transactions_by_vendor_payment_id:
+            violations.append(
+                f"Vendor payment {vendor_payment.id} has no corresponding cash transaction"
             )
 
     return violations
