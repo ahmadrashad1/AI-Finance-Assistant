@@ -19,4 +19,5 @@ def test_registry_includes_all_registered_tools() -> None:
         "get_customer",
         "get_aging_report",
         "find_duplicate_invoices",
+        "search_customers",
     }

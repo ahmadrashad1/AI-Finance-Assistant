@@ -13,6 +13,7 @@ from domains.finance.tools.get_overdue_invoices import GET_OVERDUE_INVOICES_TOOL
 from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
 from domains.finance.tools.get_vendor_balance import GET_VENDOR_BALANCE_TOOL
 from domains.finance.tools.get_vendor_invoices import GET_VENDOR_INVOICES_TOOL
+from domains.finance.tools.search_customers import SEARCH_CUSTOMERS_TOOL
 from domains.finance.tools.search_invoices import SEARCH_INVOICES_TOOL
 
 
@@ -30,4 +31,5 @@ def get_tool_registry() -> ToolRegistry:
     registry.register(GET_CUSTOMER_TOOL)
     registry.register(GET_AGING_REPORT_TOOL)
     registry.register(FIND_DUPLICATE_INVOICES_TOOL)
+    registry.register(SEARCH_CUSTOMERS_TOOL)
     return registry
