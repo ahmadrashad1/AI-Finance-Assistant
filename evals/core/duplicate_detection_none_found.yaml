@@ -1,4 +1,4 @@
-id: duplicate_detection_specific_invoice_none_found
+id: duplicate_detection_none_found
 category: duplicate_detection
 user_message: "Has invoice INV-7051 been entered before?"
 expectations:
