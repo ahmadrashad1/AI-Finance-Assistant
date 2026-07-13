@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from ai_platform.memory.conversation_memory import HistoryMessage, TurnSummary
 from ai_platform.orchestration.planner import Plan, Planner, ToolCall
@@ -150,3 +151,29 @@ async def test_create_plan_with_no_recent_turn_summaries_omits_the_activity_bloc
 
     assert llm_service.last_complete_system is not None
     assert "Recent tool activity" not in llm_service.last_complete_system
+
+
+def test_plan_accepts_out_of_scope_refusal_alone() -> None:
+    plan = Plan(out_of_scope_refusal="I can't delete invoices, but I can look them up for you.")
+    assert plan.out_of_scope_refusal is not None
+    assert plan.tool_calls is None
+    assert plan.clarification_needed is None
+    assert plan.direct_answer is None
+
+
+def test_plan_rejects_out_of_scope_refusal_combined_with_tool_calls() -> None:
+    with pytest.raises(PydanticValidationError):
+        Plan(
+            out_of_scope_refusal="I can't do that.",
+            tool_calls=[ToolCall(tool="get_unpaid_invoices", parameters={})],
+        )
+
+
+def test_plan_rejects_out_of_scope_refusal_combined_with_clarification() -> None:
+    with pytest.raises(PydanticValidationError):
+        Plan(out_of_scope_refusal="I can't do that.", clarification_needed="Which one?")
+
+
+def test_plan_rejects_all_four_branches_empty() -> None:
+    with pytest.raises(PydanticValidationError):
+        Plan()

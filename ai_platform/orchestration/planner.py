@@ -28,6 +28,7 @@ class Plan(BaseModel):
     clarification_needed: str | None = None
     tool_calls: list[ToolCall] | None = None
     direct_answer: bool | None = None
+    out_of_scope_refusal: str | None = None
 
     @model_validator(mode="after")
     def _validate_exactly_one_branch(self) -> Plan:
@@ -35,10 +36,12 @@ class Plan(BaseModel):
             self.clarification_needed is not None,
             bool(self.tool_calls),
             bool(self.direct_answer),
+            self.out_of_scope_refusal is not None,
         ]
         if sum(branches_set) != 1:
             raise ValueError(
-                "Plan must set exactly one of clarification_needed, tool_calls, direct_answer"
+                "Plan must set exactly one of clarification_needed, tool_calls, "
+                "direct_answer, out_of_scope_refusal"
             )
         return self
 
