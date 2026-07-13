@@ -1,0 +1,5 @@
+id: ambiguous_how_much_do_we_owe
+category: ambiguity
+user_message: "How much do we owe?"
+expectations:
+  expected_clarification: true

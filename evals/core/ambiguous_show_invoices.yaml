@@ -1,0 +1,5 @@
+id: ambiguous_show_invoices
+category: ambiguity
+user_message: "Show invoices"
+expectations:
+  expected_clarification: true

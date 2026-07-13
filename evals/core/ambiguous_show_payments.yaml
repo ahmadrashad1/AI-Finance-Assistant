@@ -1,0 +1,5 @@
+id: ambiguous_show_payments
+category: ambiguity
+user_message: "Show payments"
+expectations:
+  expected_clarification: true
