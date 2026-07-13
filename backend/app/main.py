@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
 from app.api.health import router as health_router
+from app.api.trace import router as trace_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -32,6 +33,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(application)
     application.include_router(health_router, prefix="/api")
     application.include_router(chat_router, prefix="/api")
+    application.include_router(trace_router, prefix="/api")
     return application
 
 
