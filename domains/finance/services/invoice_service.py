@@ -70,6 +70,11 @@ class AgingReport:
 
 
 @dataclass(frozen=True)
+class DuplicateGroup:
+    invoices: list[InvoiceRecord]
+
+
+@dataclass(frozen=True)
 class CustomerBalance:
     customer_code: str
     customer_name: str
@@ -257,3 +262,30 @@ class InvoiceService:
         ]
         grand_total = sum(totals.values(), Decimal("0"))
         return AgingReport(buckets=buckets, grand_total=grand_total)
+
+    async def find_duplicate_invoices(
+        self, *, invoice_number: str | None = None
+    ) -> list[DuplicateGroup]:
+        groups = await self._invoice_repository.find_potential_duplicate_groups(
+            invoice_number=invoice_number
+        )
+        customers = await self._customer_repository.list_all()
+        customer_names = {customer.id: customer.company_name for customer in customers}
+
+        result: list[DuplicateGroup] = []
+        for group in groups:
+            records = [
+                InvoiceRecord(
+                    invoice_number=invoice.invoice_number,
+                    customer_name=customer_names.get(invoice.customer_id, "Unknown customer"),
+                    issue_date=invoice.issue_date,
+                    due_date=invoice.due_date,
+                    total=invoice.total,
+                    balance=invoice.balance,
+                    days_outstanding=max(0, (date.today() - invoice.due_date).days),
+                    status=invoice.status,
+                )
+                for invoice in group
+            ]
+            result.append(DuplicateGroup(invoices=records))
+        return result

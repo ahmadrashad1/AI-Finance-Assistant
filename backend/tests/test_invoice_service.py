@@ -12,6 +12,7 @@ from domains.finance.repositories.payment_repository import PaymentRepository
 from domains.finance.services.invoice_service import (
     AgingReport,
     CustomerBalance,
+    DuplicateGroup,
     InvoiceRecord,
     InvoiceService,
 )
@@ -536,3 +537,72 @@ async def test_aging_report_uses_balance_not_total_for_partially_paid(
     bucket_map = _bucket_map(report)
 
     assert bucket_map["61-90"] == (1, Decimal("600"))
+
+
+@pytest.mark.asyncio
+async def test_find_duplicate_invoices_returns_customer_names_and_records(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6501", "Duplicate Test Co")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6501", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("800"), tax=Decimal("0"), total=Decimal("800"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-6502", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 2), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("800"), tax=Decimal("0"), total=Decimal("800"),
+    )
+    await db_session.commit()
+
+    groups = await _service(db_session).find_duplicate_invoices()
+
+    assert len(groups) == 1
+    assert isinstance(groups[0], DuplicateGroup)
+    numbers = {record.invoice_number for record in groups[0].invoices}
+    assert numbers == {"INV-6501", "INV-6502"}
+    assert all(record.customer_name == "Duplicate Test Co" for record in groups[0].invoices)
+
+
+@pytest.mark.asyncio
+async def test_find_duplicate_invoices_returns_empty_list_when_none_found(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6601", "Solo Invoice Co")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6601", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("400"), tax=Decimal("0"), total=Decimal("400"),
+    )
+    await db_session.commit()
+
+    groups = await _service(db_session).find_duplicate_invoices()
+
+    assert groups == []
+
+
+@pytest.mark.asyncio
+async def test_find_duplicate_invoices_filters_by_invoice_number(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6701", "Filtered Co")
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-6701", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("650"), tax=Decimal("0"), total=Decimal("650"),
+    )
+    await invoice_repo.create(
+        invoice_number="INV-6702", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 2), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("650"), tax=Decimal("0"), total=Decimal("650"),
+    )
+    await db_session.commit()
+
+    groups = await _service(db_session).find_duplicate_invoices(invoice_number="INV-6701")
+
+    assert len(groups) == 1
+    assert {record.invoice_number for record in groups[0].invoices} == {"INV-6701", "INV-6702"}
