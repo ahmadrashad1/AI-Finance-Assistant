@@ -1,0 +1,10 @@
+id: vendor_invoices_overdue_status
+category: vendor_invoices
+user_message: "Show overdue vendor invoices"
+expectations:
+  expected_tools:
+    - tool: get_vendor_invoices
+      parameters:
+        status: "overdue"
+  required_facts:
+    - "Cascade Industries"

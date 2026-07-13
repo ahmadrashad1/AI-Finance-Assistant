@@ -1,0 +1,13 @@
+id: overdue_invoices_for_anchor_piped
+category: parameter_extraction
+user_message: "Which of Anchor Components' invoices are overdue?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Anchor Components"
+    - tool: get_overdue_invoices
+      parameters:
+        customer_id: "<piped>"
+  required_facts:
+    - "6534.00"

@@ -1,0 +1,11 @@
+id: search_invoices_due_after
+category: parameter_extraction
+user_message: "What invoices are due after August 1, 2025?"
+expectations:
+  expected_tools:
+    - tool: search_invoices
+      parameters:
+        due_after: "2025-08-01"
+  required_facts:
+    - "Granite Systems"
+    - "Crestline Holdings"

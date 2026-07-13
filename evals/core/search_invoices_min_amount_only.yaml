@@ -1,0 +1,10 @@
+id: search_invoices_min_amount_only
+category: parameter_extraction
+user_message: "Show me invoices over $50,000"
+expectations:
+  expected_tools:
+    - tool: search_invoices
+      parameters:
+        minimum_amount: 50000
+  required_facts:
+    - "Anchor Components"
