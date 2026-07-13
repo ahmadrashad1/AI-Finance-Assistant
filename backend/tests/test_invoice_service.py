@@ -9,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
 from domains.finance.repositories.payment_repository import PaymentRepository
-from domains.finance.services.invoice_service import CustomerBalance, InvoiceRecord, InvoiceService
+from domains.finance.services.invoice_service import (
+    AgingReport,
+    CustomerBalance,
+    InvoiceRecord,
+    InvoiceService,
+)
 
 AS_OF = date(2026, 7, 8)
 
@@ -438,3 +443,96 @@ async def test_get_customer_balance_unknown_name_raises_value_error(
 ) -> None:
     with pytest.raises(ValueError, match="Customer not found"):
         await _service(db_session).get_customer_balance(customer_name="Does Not Exist Inc.")
+
+
+def _bucket_map(report: AgingReport) -> dict[str, tuple[int, Decimal]]:
+    return {b.label: (b.invoice_count, b.total_balance) for b in report.buckets}
+
+
+@pytest.mark.asyncio
+async def test_aging_report_buckets_by_days_overdue_boundaries(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6201", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    # AS_OF = 2026-07-08. due_date -> days_overdue: not yet due, exactly 30,
+    # exactly 31, exactly 60, exactly 61, exactly 90, exactly 91.
+    cases = [
+        ("INV-6201", date(2026, 8, 1), "current"),      # not due yet
+        ("INV-6202", date(2026, 6, 8), "0-30"),          # 30 days overdue
+        ("INV-6203", date(2026, 6, 7), "31-60"),         # 31 days overdue
+        ("INV-6204", date(2026, 5, 9), "31-60"),         # 60 days overdue
+        ("INV-6205", date(2026, 5, 8), "61-90"),         # 61 days overdue
+        ("INV-6206", date(2026, 4, 9), "61-90"),         # 90 days overdue
+        ("INV-6207", date(2026, 4, 8), "90+"),           # 91 days overdue
+    ]
+    for number, due_date, _ in cases:
+        await invoice_repo.create(
+            invoice_number=number, customer_id=customer.id, purchase_order_id=None,
+            issue_date=date(2026, 1, 1), due_date=due_date, status="sent",
+            subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+        )
+    await db_session.commit()
+
+    report = await _service(db_session).get_aging_report(as_of=AS_OF)
+    bucket_map = _bucket_map(report)
+
+    assert bucket_map["current"] == (1, Decimal("100"))
+    assert bucket_map["0-30"] == (1, Decimal("100"))
+    assert bucket_map["31-60"] == (2, Decimal("200"))
+    assert bucket_map["61-90"] == (2, Decimal("200"))
+    assert bucket_map["90+"] == (1, Decimal("100"))
+    assert report.grand_total == Decimal("700")
+
+
+@pytest.mark.asyncio
+async def test_aging_report_excludes_paid_draft_and_cancelled(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6301", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    for number, status in [("INV-6301", "paid"), ("INV-6302", "draft"), ("INV-6303", "cancelled")]:
+        await invoice_repo.create(
+            invoice_number=number, customer_id=customer.id, purchase_order_id=None,
+            issue_date=date(2026, 1, 1), due_date=date(2026, 4, 1), status=status,
+            subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+        )
+    await db_session.commit()
+
+    report = await _service(db_session).get_aging_report(as_of=AS_OF)
+
+    assert report.grand_total == Decimal("0")
+    assert all(b.invoice_count == 0 for b in report.buckets)
+
+
+@pytest.mark.asyncio
+async def test_aging_report_includes_all_five_buckets_even_when_empty(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    report = await _service(db_session).get_aging_report(as_of=AS_OF)
+    assert [b.label for b in report.buckets] == ["current", "0-30", "31-60", "61-90", "90+"]
+    assert report.grand_total == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_aging_report_uses_balance_not_total_for_partially_paid(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-6401", "Acme Corp")
+    invoice_repo = InvoiceRepository(db_session)
+    payment_repo = PaymentRepository(db_session)
+    invoice = await invoice_repo.create(
+        invoice_number="INV-6401", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 5, 8), status="sent",
+        subtotal=Decimal("1000"), tax=Decimal("0"), total=Decimal("1000"),
+    )
+    await payment_repo.record_payment(
+        invoice_id=invoice.id, payment_date=date(2026, 6, 1),
+        amount=Decimal("400"), payment_method="check", today=AS_OF,
+    )
+    await db_session.commit()
+
+    report = await _service(db_session).get_aging_report(as_of=AS_OF)
+    bucket_map = _bucket_map(report)
+
+    assert bucket_map["61-90"] == (1, Decimal("600"))

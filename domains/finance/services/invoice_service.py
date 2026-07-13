@@ -11,6 +11,20 @@ from domains.finance.repositories.invoice_repository import InvoiceRepository
 
 UNPAID_STATUSES: Final[tuple[str, ...]] = ("sent", "partially_paid", "overdue")
 
+AGING_BUCKET_LABELS: Final[tuple[str, ...]] = ("current", "0-30", "31-60", "61-90", "90+")
+
+
+def _aging_bucket_label(days_overdue: int) -> str:
+    if days_overdue <= 0:
+        return "current"
+    if days_overdue <= 30:
+        return "0-30"
+    if days_overdue <= 60:
+        return "31-60"
+    if days_overdue <= 90:
+        return "61-90"
+    return "90+"
+
 
 @dataclass(frozen=True)
 class UnpaidInvoice:
@@ -40,6 +54,19 @@ class InvoiceRecord:
     balance: Decimal
     days_outstanding: int
     status: str
+
+
+@dataclass(frozen=True)
+class AgingBucket:
+    label: str
+    invoice_count: int
+    total_balance: Decimal
+
+
+@dataclass(frozen=True)
+class AgingReport:
+    buckets: list[AgingBucket]
+    grand_total: Decimal
 
 
 @dataclass(frozen=True)
@@ -211,3 +238,22 @@ class InvoiceService:
             unpaid_invoice_count=len(invoices),
             oldest_due_date=oldest_due_date,
         )
+
+    async def get_aging_report(self, *, as_of: date | None = None) -> AgingReport:
+        effective_as_of = as_of if as_of is not None else date.today()
+        invoices = await self._invoice_repository.list_by_statuses(statuses=UNPAID_STATUSES)
+
+        totals: dict[str, Decimal] = {label: Decimal("0") for label in AGING_BUCKET_LABELS}
+        counts: dict[str, int] = {label: 0 for label in AGING_BUCKET_LABELS}
+        for invoice in invoices:
+            days_overdue = (effective_as_of - invoice.due_date).days
+            label = _aging_bucket_label(days_overdue)
+            totals[label] += invoice.balance
+            counts[label] += 1
+
+        buckets = [
+            AgingBucket(label=label, invoice_count=counts[label], total_balance=totals[label])
+            for label in AGING_BUCKET_LABELS
+        ]
+        grand_total = sum(totals.values(), Decimal("0"))
+        return AgingReport(buckets=buckets, grand_total=grand_total)
