@@ -87,3 +87,56 @@ async def test_get_by_name_is_case_insensitive_and_returns_none_when_missing(
     assert fetched is not None
     assert fetched.customer_code == "CUST-0003"
     assert await repo.get_by_name("Does Not Exist Inc.") is None
+
+
+@pytest.mark.asyncio
+async def test_search_by_name_returns_every_partial_match(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    repo = CustomerRepository(db_session)
+    await repo.create(
+        customer_code="CUST-8001", company_name="Anchor Components", industry="Manufacturing",
+        contact_name="A", contact_email="a1@example.com", payment_terms="net_30",
+        credit_limit=Decimal("50000.00"),
+    )
+    await repo.create(
+        customer_code="CUST-8002", company_name="Anchor Materials", industry="Manufacturing",
+        contact_name="A", contact_email="a2@example.com", payment_terms="net_30",
+        credit_limit=Decimal("50000.00"),
+    )
+    await repo.create(
+        customer_code="CUST-8003", company_name="Delta Logistics", industry="Logistics",
+        contact_name="A", contact_email="a3@example.com", payment_terms="net_30",
+        credit_limit=Decimal("50000.00"),
+    )
+    await db_session.commit()
+
+    matches = await repo.search_by_name("Anchor")
+
+    assert {c.company_name for c in matches} == {"Anchor Components", "Anchor Materials"}
+
+
+@pytest.mark.asyncio
+async def test_search_by_name_is_case_insensitive(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    repo = CustomerRepository(db_session)
+    await repo.create(
+        customer_code="CUST-8101", company_name="Summit Systems", industry="Technology",
+        contact_name="A", contact_email="a4@example.com", payment_terms="net_30",
+        credit_limit=Decimal("50000.00"),
+    )
+    await db_session.commit()
+
+    matches = await repo.search_by_name("summit")
+
+    assert [c.company_name for c in matches] == ["Summit Systems"]
+
+
+@pytest.mark.asyncio
+async def test_search_by_name_returns_empty_list_when_nothing_matches(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    repo = CustomerRepository(db_session)
+    matches = await repo.search_by_name("Nonexistent Prefix")
+    assert matches == []

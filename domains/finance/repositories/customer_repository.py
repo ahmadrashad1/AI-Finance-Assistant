@@ -55,6 +55,15 @@ class CustomerRepository:
         result = await self._db.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def search_by_name(self, name_query: str) -> list[CustomerModel]:
+        stmt = (
+            select(CustomerModel)
+            .where(CustomerModel.company_name.ilike(f"%{name_query}%"))
+            .order_by(CustomerModel.company_name)
+        )
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())
+
     async def list_all(self) -> list[CustomerModel]:
         stmt = select(CustomerModel).order_by(CustomerModel.customer_code)
         result = await self._db.execute(stmt)
