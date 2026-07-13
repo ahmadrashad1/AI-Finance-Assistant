@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"Anchor Materials\"\n         }\n      },\n      {\n         \"tool\": \"get_overdue_invoices\",\n         \"parameters\": {\n            \"customer_id\": \"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "Yes, Anchor Materials is one of the customers with an overdue invoice. According to the tool results, they have two overdue invoices:\n\n| Invoice Number | Customer Name | Issue Date | Due Date | Total | Balance | Days Outstanding |\n| --- | --- | --- | --- | --- | --- | --- |\n| INV-7086 | Anchor Materials | 2025-05-26 | 2025-07-10 | 31,995.00 | 31,995.00 | 368 |\n| INV-7191 | Anchor Materials | 2026-04-28 | 2026-06-12 | 96,795.00 | 96,795.00 | 31 |"
+}

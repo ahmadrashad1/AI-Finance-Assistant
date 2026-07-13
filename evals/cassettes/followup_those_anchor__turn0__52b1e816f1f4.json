@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\": {\n            \"customer_id\": null,\n            \"minimum_amount\": null,\n            \"status\": \"overdue\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, I'm unable to retrieve the overdue invoices due to an error in the tool results. The tool failed to retrieve the necessary data due to invalid parameters. I do not have any information about the overdue invoices."
+}

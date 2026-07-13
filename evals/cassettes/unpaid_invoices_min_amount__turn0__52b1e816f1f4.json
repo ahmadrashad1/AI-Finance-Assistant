@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\": {\n            \"minimum_amount\": 10000.0\n         }\n      }\n   ]\n}",
+  "response_text": "The top results are below, showing only the top records of a total of 71 invoices, with a total outstanding amount of $2,562,718.50.\n\n| invoice_number | customer_name        | total  |\n| ---             | ---                   | ---    |\n| INV-7191        | Anchor Materials      | 96,795 |\n| INV-9002        | Cascade Materials     | 91,287 |\n\nThere are 61 invoice records not shown in the above table due to the _truncated result."
+}

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_invoices\",\n         \"parameters\": {\n            \"due_after\": \"2025-08-01\"\n         }\n      },\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"minimum_amount\": 0,\n            \"maximum_amount\": null,\n            \"status\": [\n               \"sent\",\n               \"paid\",\n               \"partially_paid\",\n               \"overdue\"\n            ],\n            \"due_before\": null,\n            \"due_after\": \"$step0.result.due_after\",\n            \"invoice_number\": null,\n            \"customer_id\": null\n         }\n      }\n   ]\n}",
+  "response_text": "I'm unable to find a tool result for what invoices are due after August 1, 2025, because the provided tool results contain errors. Without a successful tool result, I don't have the information needed to answer your question."
+}

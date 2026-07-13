@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"minimum_amount\": \"50,000\",\n            \"maximum_amount\": \"$50,000\"\n         }\n      }\n   ]\n}",
+  "response_text": "I'm unable to retrieve the invoice data you requested because the tool 'search_invoices' returned an error in processing the parameters for a minimum amount of $50,000"
+}

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"invoice_number\": \"INV-7051\"\n         }\n      }\n   ]\n}",
+  "response_text": "Invoice INV-7051 has been found.  Here's the information we have about it:\n\n| invoice_number | customer_name        | issue_date | due_date     | total | balance | days_outstanding | status    |\n|----------------|----------------------|------------|--------------|-------|---------|------------------|-----------|\n| INV-7051       | Granite Systems       | 2025-01-28 | 2025-03-14    | 21060.00 | 21060.00 | 486              | overdue  |\n\nSummary: 1 invoice record found, with a total amount of $21,060.00."
+}

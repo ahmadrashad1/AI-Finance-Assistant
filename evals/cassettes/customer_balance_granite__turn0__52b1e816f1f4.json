@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer_balance\",\n         \"parameters\": {\n            \"customer_name\": \"Granite Systems\"\n         }\n      }\n   ]\n}",
+  "response_text": "According to the tool result, Granite Systems owes us a total of $158,220.00."
+}

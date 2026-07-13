@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_vendor_invoices\",\n         \"parameters\": {\n            \"status\": \"overdue\"\n         }\n      }\n   ]\n}",
+  "response_text": "Sorry, but I'm unable to retrieve the vendor invoices you're looking for based on the provided tool results. The tool returned an error message indicating that it expects different parameters, specifically 'status'. Please provide the correct parameters or a tool result with valid data."
+}

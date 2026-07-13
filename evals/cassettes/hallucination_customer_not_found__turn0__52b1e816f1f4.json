@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[  \n      {  \n         \"tool\":\"get_customer\",\n         \"parameters\":{  \n            \"customer_name\":\"Fictional Nonexistent Co\"\n         }\n      },  \n      {  \n         \"tool\":\"get_customer_balance\",\n         \"parameters\":{  \n            \"customer_id\":\"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, I couldn't find any information on how much Fictional Nonexistent Co owes us. The tool results show an error because the customer cannot be found. This means I don't have enough information to determine the balance. Let's try to find the customer information first before checking the balance."
+}

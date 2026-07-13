@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\": {}\n      }\n   ]\n}",
+  "response_text": "**Unpaid Invoices**\n====================\n\n| Invoice Number | Customer Name | Issue Date | Due Date | Total | Balance | Days Outstanding | Status |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| INV-7191 | Anchor Materials | 2026-04-28 | 2026-06-12 | 96,795.00 | 96,795.00 | 31 | Overdue |\n| INV-7156 | Harbor Materials | 2026-03-05 | 2026-05-04 | 72,117.00 | 72,117.00 | 70 | Overdue |\n| INV-7152 | Summit Components | 2025-10-22 | 2025-11-06 | 83,997.00 | 83,997.00 | 249 | Overdue |\n| INV-7147 | Titan Components | 2025-04-12 | 2025-05-27 | 73,683.00 | 73,683.00 | 412 | Overdue |\n| INV-712 (not shown) - 77 records omitted due to _truncated: true |\n\n**Total Unpaid Invoices:** 87\n**Total Outstanding Amount:** $2,650,349.70"
+}

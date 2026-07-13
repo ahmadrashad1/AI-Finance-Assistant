@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"Cascade Industries\"\n         }\n      },\n      {\n         \"tool\": \"get_vendor_balance\",\n         \"parameters\": {\n            \"customer_id\": \"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, the tool results didn't provide the information we need to answer your question. The tools used returned errors, and since I'm restricted to only using the provided data, I can't access any information on what you might owe Cascade Industries."
+}

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\"tool\": \"get_unpaid_invoices\", \"parameters\": {\"customer_id\": null, \"minimum_amount\": null}}\n   ]\n}",
+  "response_text": "Based on the provided tool results, you owe a total of $2,650,349.70.\n\nI'm showing only the top records that were returned due to truncation, but the summary indicates that there are 87 total invoices with an outstanding balance of $2,650,349.70."
+}
