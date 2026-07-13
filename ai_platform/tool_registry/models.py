@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,7 +15,7 @@ SCHEMA = "application"
 
 class ToolExecutionModel(Base):
     __tablename__ = "tool_executions"
-    __table_args__ = {"schema": SCHEMA}
+    __table_args__ = (Index("ix_tool_executions_request_id", "request_id"), {"schema": SCHEMA})
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_id: Mapped[str] = mapped_column(String(64), nullable=False)
