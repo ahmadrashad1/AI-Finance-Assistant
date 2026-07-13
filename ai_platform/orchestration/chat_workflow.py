@@ -119,6 +119,14 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
                 yield ChatEvent(type="done", conversation_id=str(conversation_id))
                 return
 
+            if plan.out_of_scope_refusal is not None:
+                yield ChatEvent(type="token", content=plan.out_of_scope_refusal)
+                await self._repository.add_message(
+                    conversation_id, "assistant", plan.out_of_scope_refusal
+                )
+                yield ChatEvent(type="done", conversation_id=str(conversation_id))
+                return
+
             outcomes: list[ToolExecutionOutcome] = []
             for tool_call in plan.tool_calls or []:
                 yield ChatEvent(type="tool_call", tool=tool_call.tool)

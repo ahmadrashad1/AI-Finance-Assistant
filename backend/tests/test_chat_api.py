@@ -256,3 +256,33 @@ async def test_tool_execution_row_survives_a_phase_two_failure(clean_db: None) -
     assert row is not None
     assert row.tool == "get_current_date"
     assert row.status == "success"
+
+
+@pytest.mark.asyncio
+async def test_post_chat_out_of_scope_refusal_skips_tool_execution(clean_db: None) -> None:
+    app.dependency_overrides[get_llm_service] = lambda: FakeLLMService(
+        tokens=[],
+        plan_response=(
+            '{"out_of_scope_refusal": "I can only help with finance questions - '
+            'I can look up invoices, balances, and payments, but I can\'t check '
+            'the weather."}'
+        ),
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/chat",
+                json={"session_id": "api-session-refusal", "message": "What's the weather today?"},
+            )
+        assert response.status_code == 200
+        events = _parse_sse(response.text)
+
+        tool_call_events = [e for e in events if e["type"] == "tool_call"]
+        assert tool_call_events == []
+        token_events = [e for e in events if e["type"] == "token"]
+        assert len(token_events) == 1
+        assert "weather" in token_events[0]["content"]
+        assert any(e["type"] == "done" for e in events)
+    finally:
+        app.dependency_overrides.pop(get_llm_service, None)
