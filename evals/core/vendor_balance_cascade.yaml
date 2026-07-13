@@ -1,0 +1,10 @@
+id: vendor_balance_cascade
+category: parameter_extraction
+user_message: "What do we owe Cascade Industries?"
+expectations:
+  expected_tools:
+    - tool: get_vendor_balance
+      parameters:
+        vendor_name: "Cascade Industries"
+  required_facts:
+    - "64890.00"

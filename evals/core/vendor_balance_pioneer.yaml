@@ -1,0 +1,10 @@
+id: vendor_balance_pioneer
+category: parameter_extraction
+user_message: "How much do we owe Pioneer Manufacturing?"
+expectations:
+  expected_tools:
+    - tool: get_vendor_balance
+      parameters:
+        vendor_name: "Pioneer Manufacturing"
+  required_facts:
+    - "203600.00"

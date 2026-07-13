@@ -1,0 +1,10 @@
+id: customer_balance_granite
+category: parameter_extraction
+user_message: "How much does Granite Systems owe us?"
+expectations:
+  expected_tools:
+    - tool: get_customer_balance
+      parameters:
+        customer_name: "Granite Systems"
+  required_facts:
+    - "Granite Systems"

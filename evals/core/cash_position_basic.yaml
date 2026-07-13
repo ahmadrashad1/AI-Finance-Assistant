@@ -1,0 +1,9 @@
+id: cash_position_basic
+category: cash_position
+user_message: "What's our current cash position?"
+expectations:
+  expected_tools:
+    - tool: get_cash_position
+      parameters: {}
+  required_facts:
+    - "918201.30"

@@ -1,0 +1,10 @@
+id: customer_balance_anchor
+category: parameter_extraction
+user_message: "What does Anchor Components owe us?"
+expectations:
+  expected_tools:
+    - tool: get_customer_balance
+      parameters:
+        customer_name: "Anchor Components"
+  required_facts:
+    - "188446.50"

@@ -1,0 +1,12 @@
+id: search_invoices_due_before_and_min_amount
+category: parameter_extraction
+user_message: "Find invoices due before June 1, 2025 for at least $40,000"
+expectations:
+  expected_tools:
+    - tool: search_invoices
+      parameters:
+        due_before: "2025-06-01"
+        minimum_amount: 40000
+  required_facts:
+    - "Anchor Components"
+    - "72063.00"

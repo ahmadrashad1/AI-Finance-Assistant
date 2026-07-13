@@ -1,0 +1,11 @@
+id: search_invoices_by_number
+category: parameter_extraction
+user_message: "Can you look up invoice INV-7051 for me?"
+expectations:
+  expected_tools:
+    - tool: search_invoices
+      parameters:
+        invoice_number: "INV-7051"
+  required_facts:
+    - "Granite Systems"
+    - "21060.00"

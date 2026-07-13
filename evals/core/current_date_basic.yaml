@@ -1,0 +1,7 @@
+id: current_date_basic
+category: current_date
+user_message: "What's today's date?"
+expectations:
+  expected_tools:
+    - tool: get_current_date
+      parameters: {}

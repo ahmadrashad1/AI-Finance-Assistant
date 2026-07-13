@@ -1,0 +1,9 @@
+id: overdue_invoices_basic
+category: overdue_invoices
+user_message: "Which invoices are overdue?"
+expectations:
+  expected_tools:
+    - tool: get_overdue_invoices
+      parameters: {}
+  required_facts:
+    - "Granite Systems"
