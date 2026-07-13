@@ -77,3 +77,24 @@ class TurnSummaryModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), server_default=func.now()
     )
+
+
+class RequestTraceModel(Base):
+    __tablename__ = "request_traces"
+    __table_args__ = (
+        Index("ix_request_traces_conversation_id", "conversation_id"),
+        {"schema": SCHEMA},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{SCHEMA}.conversations.id"), nullable=False
+    )
+    plan: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    planning_prompt_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    system_prompt_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    total_duration_ms: Mapped[int | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=lambda: datetime.now(UTC)
+    )
