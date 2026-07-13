@@ -1,0 +1,7 @@
+id: unpaid_invoices_open_right_now
+category: unpaid_invoices
+user_message: "Which invoices are open right now?"
+expectations:
+  expected_tools:
+    - tool: get_unpaid_invoices
+      parameters: {}

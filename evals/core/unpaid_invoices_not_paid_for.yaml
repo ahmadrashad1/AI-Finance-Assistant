@@ -1,0 +1,7 @@
+id: unpaid_invoices_not_paid_for
+category: unpaid_invoices
+user_message: "List invoices we haven't been paid for yet"
+expectations:
+  expected_tools:
+    - tool: get_unpaid_invoices
+      parameters: {}

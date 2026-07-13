@@ -1,0 +1,7 @@
+id: unpaid_invoices_not_settled
+category: unpaid_invoices
+user_message: "Do we have any invoices that haven't been settled?"
+expectations:
+  expected_tools:
+    - tool: get_unpaid_invoices
+      parameters: {}

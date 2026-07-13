@@ -1,0 +1,7 @@
+id: unpaid_invoices_show
+category: unpaid_invoices
+user_message: "Show me all unpaid invoices"
+expectations:
+  expected_tools:
+    - tool: get_unpaid_invoices
+      parameters: {}

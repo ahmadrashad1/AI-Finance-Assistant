@@ -1,0 +1,7 @@
+id: unpaid_invoices_outstanding
+category: unpaid_invoices
+user_message: "What invoices are still outstanding?"
+expectations:
+  expected_tools:
+    - tool: get_unpaid_invoices
+      parameters: {}
