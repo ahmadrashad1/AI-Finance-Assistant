@@ -17,4 +17,5 @@ def test_registry_includes_all_registered_tools() -> None:
         "get_cash_position",
         "get_vendor_invoices",
         "get_customer",
+        "get_aging_report",
     }
