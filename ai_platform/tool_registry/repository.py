@@ -48,3 +48,12 @@ class ToolExecutionRepository:
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
+
+    async def list_by_request_id(self, request_id: str) -> list[ToolExecutionModel]:
+        stmt = (
+            select(ToolExecutionModel)
+            .where(ToolExecutionModel.request_id == request_id)
+            .order_by(ToolExecutionModel.created_at.asc())
+        )
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())
