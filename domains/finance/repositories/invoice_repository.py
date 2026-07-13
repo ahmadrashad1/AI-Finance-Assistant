@@ -119,6 +119,49 @@ class InvoiceRepository:
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
 
+    async def find_potential_duplicate_groups(
+        self, *, invoice_number: str | None = None
+    ) -> list[list[InvoiceModel]]:
+        """Groups invoices by (customer_id, total) where the group has
+        more than one member and every member's issue_date falls within
+        7 days of the group's earliest issue_date - a deterministic
+        proxy for "the same invoice entered twice," not a fuzzy/LLM
+        judgment call. With invoice_number given, only that invoice's
+        own group (possibly empty) is considered.
+        """
+        conditions: list[ColumnElement[bool]] = [InvoiceModel.status != "cancelled"]
+        if invoice_number is not None:
+            target = await self.get_by_number(invoice_number)
+            if target is None:
+                return []
+            conditions.append(InvoiceModel.customer_id == target.customer_id)
+            conditions.append(InvoiceModel.total == target.total)
+
+        stmt = (
+            select(InvoiceModel)
+            .where(*conditions)
+            .order_by(InvoiceModel.customer_id, InvoiceModel.total, InvoiceModel.issue_date)
+        )
+        result = await self._db.execute(stmt)
+        invoices = list(result.scalars().all())
+
+        groups: list[list[InvoiceModel]] = []
+        current_group: list[InvoiceModel] = []
+        for invoice in invoices:
+            starts_new_group = current_group and (
+                invoice.customer_id != current_group[-1].customer_id
+                or invoice.total != current_group[-1].total
+                or (invoice.issue_date - current_group[0].issue_date).days > 7
+            )
+            if starts_new_group:
+                if len(current_group) > 1:
+                    groups.append(current_group)
+                current_group = []
+            current_group.append(invoice)
+        if len(current_group) > 1:
+            groups.append(current_group)
+        return groups
+
     async def search(
         self,
         *,

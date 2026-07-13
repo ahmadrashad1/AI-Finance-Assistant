@@ -377,3 +377,134 @@ def test_compute_invoice_status_priority_rule() -> None:
         compute_invoice_status(amount_paid=Decimal("40"), current_status="sent", **equal_date)
         == "partially_paid"
     )
+
+
+@pytest.mark.asyncio
+async def test_finds_a_duplicate_pair_same_customer_amount_and_close_dates(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7001")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7001", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("2000"), tax=Decimal("0"), total=Decimal("2000"),
+    )
+    await repo.create(
+        invoice_number="INV-7002", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 2), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("2000"), tax=Decimal("0"), total=Decimal("2000"),
+    )
+    await db_session.commit()
+
+    groups = await repo.find_potential_duplicate_groups()
+
+    assert len(groups) == 1
+    assert {invoice.invoice_number for invoice in groups[0]} == {"INV-7001", "INV-7002"}
+
+
+@pytest.mark.asyncio
+async def test_does_not_group_different_customers_or_amounts(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer_a = await _make_customer(db_session, "CUST-7101")
+    customer_b = await _make_customer(db_session, "CUST-7102")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7101", customer_id=customer_a.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    await repo.create(
+        invoice_number="INV-7102", customer_id=customer_b.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("500"), tax=Decimal("0"), total=Decimal("500"),
+    )
+    await repo.create(
+        invoice_number="INV-7103", customer_id=customer_a.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("999"), tax=Decimal("0"), total=Decimal("999"),
+    )
+    await db_session.commit()
+
+    groups = await repo.find_potential_duplicate_groups()
+
+    assert groups == []
+
+
+@pytest.mark.asyncio
+async def test_does_not_group_dates_more_than_seven_days_apart(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7201")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7201", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("750"), tax=Decimal("0"), total=Decimal("750"),
+    )
+    await repo.create(
+        invoice_number="INV-7202", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 15), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("750"), tax=Decimal("0"), total=Decimal("750"),
+    )
+    await db_session.commit()
+
+    groups = await repo.find_potential_duplicate_groups()
+
+    assert groups == []
+
+
+@pytest.mark.asyncio
+async def test_excludes_cancelled_invoices(clean_db: None, db_session: AsyncSession) -> None:
+    customer = await _make_customer(db_session, "CUST-7301")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7301", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("300"), tax=Decimal("0"), total=Decimal("300"),
+    )
+    await repo.create(
+        invoice_number="INV-7302", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="cancelled",
+        subtotal=Decimal("300"), tax=Decimal("0"), total=Decimal("300"),
+    )
+    await db_session.commit()
+
+    groups = await repo.find_potential_duplicate_groups()
+
+    assert groups == []
+
+
+@pytest.mark.asyncio
+async def test_invoice_number_filter_checks_only_that_invoices_own_group(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7401")
+    repo = InvoiceRepository(db_session)
+    await repo.create(
+        invoice_number="INV-7401", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 1), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("1200"), tax=Decimal("0"), total=Decimal("1200"),
+    )
+    await repo.create(
+        invoice_number="INV-7402", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 3, 2), due_date=date(2026, 4, 1), status="sent",
+        subtotal=Decimal("1200"), tax=Decimal("0"), total=Decimal("1200"),
+    )
+    await repo.create(
+        invoice_number="INV-7403", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 5, 1), due_date=date(2026, 6, 1), status="sent",
+        subtotal=Decimal("50"), tax=Decimal("0"), total=Decimal("50"),
+    )
+    await db_session.commit()
+
+    groups = await repo.find_potential_duplicate_groups(invoice_number="INV-7401")
+    assert len(groups) == 1
+    assert {invoice.invoice_number for invoice in groups[0]} == {"INV-7401", "INV-7402"}
+
+    no_dupes = await repo.find_potential_duplicate_groups(invoice_number="INV-7403")
+    assert no_dupes == []
+
+    unknown = await repo.find_potential_duplicate_groups(invoice_number="INV-9999")
+    assert unknown == []
