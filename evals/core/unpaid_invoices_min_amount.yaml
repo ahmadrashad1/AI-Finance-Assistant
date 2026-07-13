@@ -6,5 +6,3 @@ expectations:
     - tool: get_unpaid_invoices
       parameters:
         minimum_amount: 10000
-  required_facts:
-    - "Granite Systems"

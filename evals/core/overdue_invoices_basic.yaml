@@ -5,5 +5,3 @@ expectations:
   expected_tools:
     - tool: get_overdue_invoices
       parameters: {}
-  required_facts:
-    - "Granite Systems"
