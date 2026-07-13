@@ -134,10 +134,10 @@ re-run. **This is the entire mechanism behind "prompt changes without a
 passing eval run are flagged in the report"** — no separate bookkeeping
 or DB cross-check needed; a stale cassette *is* the flag.
 
-Cassettes for multi-turn cases store one entry per turn (setup turns
-included), since a `conversation_setup` turn must be replayed faithfully
-to reach the same DB/memory state the final turn's real run originally
-saw.
+Multi-turn cases produce one cassette **file** per turn (the filename's
+`__turn<N>__` segment), including `conversation_setup` turns — each must
+be replayed faithfully to reach the same DB/memory state the final
+turn's real run originally saw.
 
 ## 3. Data Model (`evaluation` schema)
 
