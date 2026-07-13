@@ -2,7 +2,7 @@ from ai_platform.prompts.system_prompt import AUTHOR, CHANGELOG, SYSTEM_PROMPT, 
 
 
 def test_system_prompt_is_versioned() -> None:
-    assert VERSION == "1.4.0"
+    assert VERSION == "1.5.0"
     assert AUTHOR
     assert len(CHANGELOG) >= 5
 
@@ -32,3 +32,16 @@ def test_system_prompt_instructs_grounding_when_reasoning_over_combined_results(
     lowered = SYSTEM_PROMPT.lower()
     assert "more than one tool result" in lowered or "multiple tool results" in lowered
     assert "recommend" in lowered or "priorit" in lowered
+
+
+def test_system_prompt_teaches_multi_match_disambiguation() -> None:
+    prompt = SYSTEM_PROMPT.lower()
+    assert "multiple candidate" in prompt or "more than one match" in prompt
+    assert "ask" in prompt
+
+
+def test_system_prompt_requires_explanation_for_analytical_answers() -> None:
+    prompt = SYSTEM_PROMPT.lower()
+    assert "aging report" in prompt
+    assert "duplicate" in prompt
+    assert "explain" in prompt
