@@ -57,7 +57,9 @@ def _make_workflow(db_session: AsyncSession, llm_service: FakeLLMService) -> Cha
         planner=Planner(llm_service, registry, prompt_builder),
         execution_planner=ExecutionPlanner(),
         tool_executor=tool_executor,
-        request_id="eval-req",
+        # Unique per workflow, mirroring production where RequestContextMiddleware
+        # issues a fresh uuid per HTTP request - request_traces.request_id is unique.
+        request_id=f"eval-req-{uuid.uuid4()}",
     )
 
 
@@ -96,7 +98,8 @@ async def test_eval_conversation_history_reaches_the_prompt(
     await db_session.commit()
     assert conversation_id is not None
 
-    async for _ in workflow.run(
+    second_turn_workflow = _make_workflow(db_session, llm_service)
+    async for _ in second_turn_workflow.run(
         ChatRequest(
             session_id="eval-session-2",
             message="What's my favorite color?",

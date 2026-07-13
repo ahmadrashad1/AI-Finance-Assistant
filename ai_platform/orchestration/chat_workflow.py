@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import uuid
 from collections.abc import AsyncIterator
 from contextvars import Token
@@ -15,7 +16,9 @@ from ai_platform.orchestration.execution_planner import ExecutionPlanner
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
 from ai_platform.orchestration.result_shaping import cap_result_for_prompt
+from ai_platform.prompts.planning_prompt import VERSION as PLANNING_PROMPT_VERSION
 from ai_platform.prompts.system_prompt import SYSTEM_PROMPT
+from ai_platform.prompts.system_prompt import VERSION as SYSTEM_PROMPT_VERSION
 from ai_platform.tool_registry.executor import ToolExecutionOutcome, ToolExecutor
 from ai_platform.workflow.base import Workflow, WorkflowContext
 from app.core.errors import ValidationError
@@ -92,6 +95,8 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
     ) -> AsyncIterator[ChatEvent]:
         workflow_token = workflow_ctx_var.set(self.name)
         conversation_token: Token[str | None] | None = None
+        start = time.perf_counter()
+        request_id_for_trace: str | None = None
         try:
             await self._repository.get_or_create_session(input_data.session_id)
 
@@ -110,6 +115,16 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
             plan = await self._planner.create_plan(
                 history, input_data.message, recent_turn_summaries
             )
+
+            if self._request_id is not None:
+                await self._repository.create_request_trace(
+                    conversation_id,
+                    request_id=self._request_id,
+                    plan=plan.model_dump(mode="json"),
+                    planning_prompt_version=PLANNING_PROMPT_VERSION,
+                    system_prompt_version=SYSTEM_PROMPT_VERSION,
+                )
+                request_id_for_trace = self._request_id
 
             if plan.clarification_needed is not None:
                 yield ChatEvent(type="token", content=plan.clarification_needed)
@@ -188,6 +203,11 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
             )
             yield ChatEvent(type="done", conversation_id=str(conversation_id))
         finally:
+            if request_id_for_trace is not None:
+                duration_ms = int((time.perf_counter() - start) * 1000)
+                await self._repository.finish_request_trace(
+                    request_id_for_trace, total_duration_ms=duration_ms
+                )
             if conversation_token is not None:
                 conversation_id_ctx_var.reset(conversation_token)
             workflow_ctx_var.reset(workflow_token)

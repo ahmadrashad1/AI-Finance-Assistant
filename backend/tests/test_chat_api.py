@@ -286,3 +286,38 @@ async def test_post_chat_out_of_scope_refusal_skips_tool_execution(clean_db: Non
         assert any(e["type"] == "done" for e in events)
     finally:
         app.dependency_overrides.pop(get_llm_service, None)
+
+
+@pytest.mark.asyncio
+async def test_post_chat_records_a_request_trace(clean_db: None) -> None:
+    app.dependency_overrides[get_llm_service] = lambda: FakeLLMService(
+        tokens=["Here you go."],
+        plan_response='{"tool_calls": [{"tool": "get_current_date", "parameters": {}}]}',
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/chat",
+                json={"session_id": "api-session-trace", "message": "What's today's date?"},
+            )
+        assert response.status_code == 200
+        request_id = response.headers["x-request-id"]
+    finally:
+        app.dependency_overrides.pop(get_llm_service, None)
+
+    from ai_platform.memory.repository import ConversationRepository
+    from ai_platform.prompts.planning_prompt import VERSION as PLANNING_PROMPT_VERSION
+    from ai_platform.prompts.system_prompt import VERSION as SYSTEM_PROMPT_VERSION
+    from app.db.session import get_sessionmaker
+
+    async with get_sessionmaker()() as session:
+        repository = ConversationRepository(session)
+        trace = await repository.get_request_trace(request_id)
+
+    assert trace is not None
+    assert trace.plan["tool_calls"] == [{"tool": "get_current_date", "parameters": {}}]
+    assert trace.planning_prompt_version == PLANNING_PROMPT_VERSION
+    assert trace.system_prompt_version == SYSTEM_PROMPT_VERSION
+    assert trace.total_duration_ms is not None
+    assert trace.total_duration_ms >= 0

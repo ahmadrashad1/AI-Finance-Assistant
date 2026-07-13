@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -36,7 +37,9 @@ def _make_workflow(db_session: AsyncSession, llm_service: FakeLLMService) -> Cha
         planner=Planner(llm_service, registry, prompt_builder),
         execution_planner=ExecutionPlanner(),
         tool_executor=tool_executor,
-        request_id="turn-summary-test-req",
+        # Unique per workflow, mirroring production where RequestContextMiddleware
+        # issues a fresh uuid per HTTP request - request_traces.request_id is unique.
+        request_id=f"turn-summary-test-req-{uuid.uuid4()}",
     )
 
 
