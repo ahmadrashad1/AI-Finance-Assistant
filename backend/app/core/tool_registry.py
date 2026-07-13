@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from ai_platform.tool_registry.registry import ToolRegistry
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
+from domains.finance.tools.find_duplicate_invoices import FIND_DUPLICATE_INVOICES_TOOL
 from domains.finance.tools.get_aging_report import GET_AGING_REPORT_TOOL
 from domains.finance.tools.get_cash_position import GET_CASH_POSITION_TOOL
 from domains.finance.tools.get_customer import GET_CUSTOMER_TOOL
@@ -28,4 +29,5 @@ def get_tool_registry() -> ToolRegistry:
     registry.register(GET_VENDOR_INVOICES_TOOL)
     registry.register(GET_CUSTOMER_TOOL)
     registry.register(GET_AGING_REPORT_TOOL)
+    registry.register(FIND_DUPLICATE_INVOICES_TOOL)
     return registry
