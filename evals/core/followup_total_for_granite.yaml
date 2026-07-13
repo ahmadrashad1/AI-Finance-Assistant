@@ -1,0 +1,16 @@
+id: followup_total_for_granite
+category: follow_up
+tests_memory: true
+conversation_setup:
+  - user_message: "Show overdue invoices"
+user_message: "Is Granite Systems one of those?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Granite Systems"
+    - tool: get_overdue_invoices
+      parameters:
+        customer_id: "<piped>"
+  required_facts:
+    - "21060.00"

@@ -1,0 +1,16 @@
+id: followup_those_anchor
+category: follow_up
+tests_memory: true
+conversation_setup:
+  - user_message: "Show overdue invoices"
+user_message: "Which of those belong to Anchor Components?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Anchor Components"
+    - tool: get_overdue_invoices
+      parameters:
+        customer_id: "<piped>"
+  required_facts:
+    - "6534.00"
