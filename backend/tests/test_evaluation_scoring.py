@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 from ai_platform.evaluation.case_schema import EvalCase
-from ai_platform.evaluation.scoring import ActualToolCall, CaseOutcome, score_case
+from ai_platform.evaluation.scoring import (
+    ActualToolCall,
+    CaseOutcome,
+    CaseScore,
+    aggregate_metrics,
+    score_case,
+)
 
 
 def _case(**expectations_kwargs: object) -> EvalCase:
@@ -196,3 +202,80 @@ def test_required_fact_check_ignores_comma_and_dollar_formatting() -> None:
         clarification=None,
     )
     assert score_case(case, outcome).metrics["required_facts_present"] is True
+
+
+def _score(
+    passed: bool, *, tool_selection_correct: bool = True, hallucinated: bool = False,
+    matched: int = 0, total: int = 0,
+) -> CaseScore:
+    return CaseScore(
+        passed=passed, score=1.0 if passed else 0.0,
+        metrics={
+            "tool_selection_correct": tool_selection_correct, "parameters_correct": True,
+            "clarification_correct": True, "hallucinated": hallucinated,
+            "required_facts_present": True,
+        },
+        parameter_pairs_matched=matched, parameter_pairs_total=total,
+    )
+
+
+def test_tool_selection_accuracy_only_counts_cases_with_expected_tools() -> None:
+    with_tools = _case(expected_tools=[{"tool": "get_current_date", "parameters": {}}])
+    without_tools = _case(expected_clarification=True)
+    metrics = aggregate_metrics(
+        [with_tools, without_tools],
+        [_score(True, tool_selection_correct=True), _score(True, tool_selection_correct=False)],
+    )
+    assert metrics["tool_selection_accuracy"] == 1.0
+
+
+def test_memory_usage_accuracy_only_counts_tests_memory_cases() -> None:
+    memory_case = EvalCase.model_validate(
+        {
+            "id": "m1", "category": "follow_up", "tests_memory": True, "user_message": "x",
+            "expectations": {"expected_tools": [{"tool": "get_customer", "parameters": {}}]},
+        }
+    )
+    non_memory_case = _case(expected_tools=[{"tool": "get_current_date", "parameters": {}}])
+    metrics = aggregate_metrics(
+        [memory_case, non_memory_case],
+        [_score(False, tool_selection_correct=False), _score(True, tool_selection_correct=True)],
+    )
+    assert metrics["memory_usage_accuracy"] == 0.0
+
+
+def test_hallucination_rate_only_counts_cases_with_forbidden_content() -> None:
+    trap_case = _case(
+        expected_tools=[{"tool": "search_invoices", "parameters": {}}],
+        forbidden_content=["INV-99999"],
+    )
+    plain_case = _case(expected_tools=[{"tool": "get_current_date", "parameters": {}}])
+    metrics = aggregate_metrics(
+        [trap_case, plain_case],
+        [_score(False, hallucinated=True), _score(True, hallucinated=False)],
+    )
+    assert metrics["hallucination_rate"] == 1.0
+
+
+def test_parameter_accuracy_sums_matched_pairs_across_all_cases() -> None:
+    case_a = _case(
+        expected_tools=[
+            {"tool": "get_customer_balance", "parameters": {"customer_name": "Acme"}}
+        ]
+    )
+    case_b = _case(
+        expected_tools=[{"tool": "get_vendor_balance", "parameters": {"vendor_name": "Acme"}}]
+    )
+    metrics = aggregate_metrics(
+        [case_a, case_b], [_score(True, matched=1, total=1), _score(False, matched=0, total=1)]
+    )
+    assert metrics["parameter_accuracy"] == 0.5
+
+
+def test_aggregate_metrics_defaults_to_1_0_when_no_applicable_cases() -> None:
+    plain_case = _case(expected_clarification=True)
+    metrics = aggregate_metrics([plain_case], [_score(True)])
+    assert metrics["tool_selection_accuracy"] == 1.0
+    assert metrics["memory_usage_accuracy"] == 1.0
+    assert metrics["hallucination_rate"] == 1.0
+    assert metrics["parameter_accuracy"] == 1.0

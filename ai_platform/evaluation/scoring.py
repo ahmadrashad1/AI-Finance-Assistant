@@ -151,3 +151,26 @@ def score_case(case: EvalCase, outcome: CaseOutcome) -> CaseScore:
         parameter_pairs_total=parameter_pairs_total,
         failure_reason="; ".join(reasons) if reasons else None,
     )
+
+
+def _rate(pairs: list[tuple[EvalCase, CaseScore]], metric_key: str) -> float:
+    if not pairs:
+        return 1.0
+    return sum(1 for _, score in pairs if score.metrics[metric_key]) / len(pairs)
+
+
+def aggregate_metrics(cases: list[EvalCase], scores: list[CaseScore]) -> dict[str, float]:
+    paired = list(zip(cases, scores, strict=True))
+    tool_selection_pairs = [(c, s) for c, s in paired if c.expectations.expected_tools]
+    memory_pairs = [(c, s) for c, s in tool_selection_pairs if c.tests_memory]
+    hallucination_pairs = [(c, s) for c, s in paired if c.expectations.forbidden_content]
+
+    total_pairs = sum(s.parameter_pairs_total for s in scores)
+    matched_pairs = sum(s.parameter_pairs_matched for s in scores)
+
+    return {
+        "tool_selection_accuracy": _rate(tool_selection_pairs, "tool_selection_correct"),
+        "parameter_accuracy": (matched_pairs / total_pairs) if total_pairs else 1.0,
+        "memory_usage_accuracy": _rate(memory_pairs, "tool_selection_correct"),
+        "hallucination_rate": _rate(hallucination_pairs, "hallucinated"),
+    }
