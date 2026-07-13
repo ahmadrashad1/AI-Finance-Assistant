@@ -3,14 +3,14 @@ category: follow_up
 tests_memory: true
 conversation_setup:
   - user_message: "Show overdue invoices"
-user_message: "Is Granite Systems one of those?"
+user_message: "Is Anchor Materials one of those?"
 expectations:
   expected_tools:
     - tool: get_customer
       parameters:
-        customer_name: "Granite Systems"
+        customer_name: "Anchor Materials"
     - tool: get_overdue_invoices
       parameters:
         customer_id: "<piped>"
   required_facts:
-    - "21060.00"
+    - "96795.00"
