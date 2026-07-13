@@ -19,7 +19,7 @@ from app.api.chat import get_llm_service
 from app.core.tool_registry import get_tool_registry
 from app.db.session import get_sessionmaker
 
-_STALE_METRICS = {
+_FAILURE_METRICS = {
     "tool_selection_correct": False, "parameters_correct": False,
     "clarification_correct": False, "hallucinated": False,
     "required_facts_present": False,
@@ -28,9 +28,17 @@ _STALE_METRICS = {
 
 def _stale_score() -> CaseScore:
     return CaseScore(
-        passed=False, score=0.0, metrics=dict(_STALE_METRICS),
+        passed=False, score=0.0, metrics=dict(_FAILURE_METRICS),
         parameter_pairs_matched=0, parameter_pairs_total=0,
         failure_reason="stale cassette - run with --record",
+    )
+
+
+def _exception_score(exc: Exception) -> CaseScore:
+    return CaseScore(
+        passed=False, score=0.0, metrics=dict(_FAILURE_METRICS),
+        parameter_pairs_matched=0, parameter_pairs_total=0,
+        failure_reason=f"unhandled exception: {exc}",
     )
 
 
@@ -79,6 +87,24 @@ async def run_suite(
             except CaseStale:
                 stale_case_ids.append(case.id)
                 scores.append(_stale_score())
+                continue
+            except Exception as exc:
+                # A case's failure must not kill the suite. Unlike a stale cassette (nothing
+                # ran), the case genuinely ran partway
+                # (e.g. the planner call happened and raised AIError on malformed model
+                # output) - so it earns its own evaluation_results row, not just a
+                # scorecard line.
+                exception_score = _exception_score(exc)
+                await evaluation_repository.record_result(
+                    run_id=run_row.id, case_id=case_row.id,
+                    expected=case.expectations.model_dump(mode="json"),
+                    actual={"tool_calls": [], "response_text": "", "clarification": None},
+                    passed=exception_score.passed, score=exception_score.score,
+                    metrics=exception_score.metrics,
+                    failure_reason=exception_score.failure_reason,
+                )
+                await db.commit()
+                scores.append(exception_score)
                 continue
 
             score = score_case(case, outcome)
