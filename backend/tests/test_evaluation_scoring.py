@@ -151,6 +151,28 @@ def test_genuinely_wrong_numeric_string_still_fails() -> None:
     assert score.parameter_pairs_total == 1
 
 
+def test_genuinely_unparseable_numeric_string_fails() -> None:
+    """Cover the except (InvalidOperation, ValueError) branch by using an unparseable string."""
+    case = _case(
+        expected_tools=[
+            {"tool": "get_unpaid_invoices", "parameters": {"minimum_amount": 40000}}
+        ]
+    )
+    outcome = CaseOutcome(
+        tool_calls=[
+            ActualToolCall(
+                tool="get_unpaid_invoices", parameters={"minimum_amount": "not-a-number"}
+            )
+        ],
+        response_text="", clarification=None,
+    )
+    score = score_case(case, outcome)
+    assert score.passed is False
+    assert score.metrics["parameters_correct"] is False
+    assert score.parameter_pairs_matched == 0
+    assert score.parameter_pairs_total == 1
+
+
 def test_exact_string_parameter_still_requires_exact_match() -> None:
     case = _case(
         expected_tools=[
