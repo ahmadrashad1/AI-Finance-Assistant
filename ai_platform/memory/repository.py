@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_platform.memory.models import (
     ConversationModel,
     MessageModel,
+    RequestTraceModel,
     SessionModel,
     TurnSummaryModel,
 )
@@ -98,3 +99,34 @@ class ConversationRepository:
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
+
+    async def create_request_trace(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        request_id: str,
+        plan: dict[str, Any],
+        planning_prompt_version: str,
+        system_prompt_version: str,
+    ) -> RequestTraceModel:
+        trace = RequestTraceModel(
+            id=uuid.uuid4(), request_id=request_id, conversation_id=conversation_id,
+            plan=plan, planning_prompt_version=planning_prompt_version,
+            system_prompt_version=system_prompt_version,
+        )
+        self._db.add(trace)
+        await self._db.flush()
+        return trace
+
+    async def finish_request_trace(self, request_id: str, *, total_duration_ms: int) -> None:
+        stmt = select(RequestTraceModel).where(RequestTraceModel.request_id == request_id)
+        result = await self._db.execute(stmt)
+        trace = result.scalar_one_or_none()
+        if trace is not None:
+            trace.total_duration_ms = total_duration_ms
+            await self._db.flush()
+
+    async def get_request_trace(self, request_id: str) -> RequestTraceModel | None:
+        stmt = select(RequestTraceModel).where(RequestTraceModel.request_id == request_id)
+        result = await self._db.execute(stmt)
+        return result.scalar_one_or_none()
