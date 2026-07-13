@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,8 +65,9 @@ async def _run_turn(
     real_llm_service: LLMService | None,
     record: bool,
     cassettes_root: Path | None,
+    run_token: str,
 ) -> tuple[str, list[ChatEvent], bool]:
-    request_id = f"eval-{case_id}-turn{turn}"
+    request_id = f"eval-{case_id}-{run_token}-turn{turn}"
     recorder: RecordingLLMService | None = None
 
     if mode == "live":
@@ -126,20 +128,28 @@ async def run_case(
     real_llm_service: LLMService | None = None,
     cassettes_root: Path | None = None,
 ) -> CaseOutcome:
+    # Unique per run_case invocation - not per case_id - so that running the
+    # same case twice in one process/database (e.g. live-record then
+    # recorded-replay in the same test) doesn't have the second run's
+    # tool-execution lookup pick up rows left behind by the first run: both
+    # would otherwise share the identical "eval-{case_id}-turn{turn}"
+    # request_id and collide in ToolExecutionRepository.list_by_request_id.
+    run_token = uuid.uuid4().hex[:8]
+
     conversation_id: str | None = None
     turn = 0
     for setup_turn in case.conversation_setup:
         conversation_id, _, _ = await _run_turn(
             db, registry, case_id=case.id, turn=turn, user_message=setup_turn.user_message,
             conversation_id=conversation_id, mode=mode, real_llm_service=real_llm_service,
-            record=record, cassettes_root=cassettes_root,
+            record=record, cassettes_root=cassettes_root, run_token=run_token,
         )
         turn += 1
 
     conversation_id, events, stream_reply_called = await _run_turn(
         db, registry, case_id=case.id, turn=turn, user_message=case.user_message,
         conversation_id=conversation_id, mode=mode, real_llm_service=real_llm_service,
-        record=record, cassettes_root=cassettes_root,
+        record=record, cassettes_root=cassettes_root, run_token=run_token,
     )
 
     response_text = "".join(
@@ -148,7 +158,9 @@ async def run_case(
     clarification = None if stream_reply_called else (response_text or None)
 
     execution_repository = ToolExecutionRepository(db)
-    executions = await execution_repository.list_by_request_id(f"eval-{case.id}-turn{turn}")
+    executions = await execution_repository.list_by_request_id(
+        f"eval-{case.id}-{run_token}-turn{turn}"
+    )
     tool_calls = [ActualToolCall(tool=e.tool, parameters=e.parameters) for e in executions]
 
     return CaseOutcome(
