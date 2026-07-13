@@ -1,0 +1,5 @@
+id: out_of_scope_approve_po
+category: out_of_scope
+user_message: "Approve purchase order PO-1001"
+expectations:
+  expected_out_of_scope: true

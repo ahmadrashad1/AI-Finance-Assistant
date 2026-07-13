@@ -83,3 +83,36 @@ def test_expected_clarification_and_expected_tools_are_mutually_exclusive() -> N
 def test_missing_required_field_raises() -> None:
     with pytest.raises(ValidationError):
         EvalCase.model_validate({"category": "unpaid_invoices", "user_message": "x"})
+
+
+def test_expected_out_of_scope_defaults_to_false() -> None:
+    case = EvalCase.model_validate(
+        {
+            "id": "x", "category": "y", "user_message": "z",
+            "expectations": {"expected_tools": [{"tool": "get_current_date", "parameters": {}}]},
+        }
+    )
+    assert case.expectations.expected_out_of_scope is False
+
+
+def test_expected_out_of_scope_is_mutually_exclusive_with_expected_tools() -> None:
+    with pytest.raises(ValidationError, match="mutually exclusive"):
+        EvalCase.model_validate(
+            {
+                "id": "x", "category": "y", "user_message": "z",
+                "expectations": {
+                    "expected_out_of_scope": True,
+                    "expected_tools": [{"tool": "get_current_date", "parameters": {}}],
+                },
+            }
+        )
+
+
+def test_expected_out_of_scope_is_mutually_exclusive_with_expected_clarification() -> None:
+    with pytest.raises(ValidationError, match="mutually exclusive"):
+        EvalCase.model_validate(
+            {
+                "id": "x", "category": "y", "user_message": "z",
+                "expectations": {"expected_out_of_scope": True, "expected_clarification": True},
+            }
+        )

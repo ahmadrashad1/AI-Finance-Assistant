@@ -1,0 +1,5 @@
+id: out_of_scope_weather
+category: out_of_scope
+user_message: "What's the weather like today?"
+expectations:
+  expected_out_of_scope: true

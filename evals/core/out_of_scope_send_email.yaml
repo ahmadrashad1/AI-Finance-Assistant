@@ -1,0 +1,5 @@
+id: out_of_scope_send_email
+category: out_of_scope
+user_message: "Send an email to the customer about their overdue invoice"
+expectations:
+  expected_out_of_scope: true

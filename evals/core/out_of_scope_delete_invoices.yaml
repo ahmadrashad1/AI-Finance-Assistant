@@ -1,0 +1,5 @@
+id: out_of_scope_delete_invoices
+category: out_of_scope
+user_message: "Delete all invoices"
+expectations:
+  expected_out_of_scope: true

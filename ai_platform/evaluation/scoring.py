@@ -22,6 +22,7 @@ class CaseOutcome:
     tool_calls: list[ActualToolCall]
     response_text: str
     clarification: str | None
+    out_of_scope: bool = False
 
 
 @dataclass
@@ -140,6 +141,13 @@ def score_case(case: EvalCase, outcome: CaseOutcome) -> CaseScore:
             f"got clarification={outcome.clarification!r}"
         )
 
+    out_of_scope_ok = expectations.expected_out_of_scope == outcome.out_of_scope
+    if not out_of_scope_ok:
+        reasons.append(
+            f"expected_out_of_scope={expectations.expected_out_of_scope!r}, "
+            f"got out_of_scope={outcome.out_of_scope!r}"
+        )
+
     hallucinated = False
     if expectations.forbidden_content:
         hallucinated = not _contains_none(outcome.response_text, expectations.forbidden_content)
@@ -157,6 +165,7 @@ def score_case(case: EvalCase, outcome: CaseOutcome) -> CaseScore:
         tool_sequence_ok
         and all_parameters_ok
         and clarification_ok
+        and out_of_scope_ok
         and not hallucinated
         and required_facts_ok
     )
@@ -167,6 +176,7 @@ def score_case(case: EvalCase, outcome: CaseOutcome) -> CaseScore:
             "tool_selection_correct": tool_sequence_ok,
             "parameters_correct": all_parameters_ok,
             "clarification_correct": clarification_ok,
+            "out_of_scope_correct": out_of_scope_ok,
             "hallucinated": hallucinated,
             "required_facts_present": required_facts_ok,
         },

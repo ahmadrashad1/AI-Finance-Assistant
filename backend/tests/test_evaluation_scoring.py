@@ -379,3 +379,23 @@ def test_aggregate_metrics_defaults_to_1_0_when_no_applicable_cases() -> None:
     assert metrics["memory_usage_accuracy"] == 1.0
     assert metrics["hallucination_rate"] == 1.0
     assert metrics["parameter_accuracy"] == 1.0
+
+
+def test_out_of_scope_refusal_check_passes_when_expected_and_fired() -> None:
+    case = _case(expected_out_of_scope=True)
+    outcome = CaseOutcome(
+        tool_calls=[], response_text="I can't do that, but I can...", clarification=None,
+        out_of_scope=True,
+    )
+    score = score_case(case, outcome)
+    assert score.passed is True
+
+
+def test_out_of_scope_refusal_check_fails_when_expected_but_not_fired() -> None:
+    case = _case(expected_out_of_scope=True)
+    outcome = CaseOutcome(
+        tool_calls=[ActualToolCall(tool="get_unpaid_invoices", parameters={})],
+        response_text="Here you go.", clarification=None,
+    )
+    score = score_case(case, outcome)
+    assert score.passed is False

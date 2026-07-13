@@ -155,14 +155,22 @@ async def run_case(
     response_text = "".join(
         e.content for e in events if e.type == "token" and e.content is not None
     )
-    clarification = None if stream_reply_called else (response_text or None)
 
     execution_repository = ToolExecutionRepository(db)
-    executions = await execution_repository.list_by_request_id(
-        f"eval-{case.id}-{run_token}-turn{turn}"
-    )
+    final_request_id = f"eval-{case.id}-{run_token}-turn{turn}"
+    executions = await execution_repository.list_by_request_id(final_request_id)
     tool_calls = [ActualToolCall(tool=e.tool, parameters=e.parameters) for e in executions]
 
+    # Both clarification_needed and out_of_scope_refusal skip Phase 2, so
+    # stream_reply_called alone can't tell them apart - the turn's own
+    # request_traces row (written right after planning) is the ground truth
+    # for which Plan branch actually fired.
+    conversation_repository = ConversationRepository(db)
+    trace = await conversation_repository.get_request_trace(final_request_id)
+    out_of_scope = bool(trace is not None and trace.plan.get("out_of_scope_refusal") is not None)
+    clarification = None if (stream_reply_called or out_of_scope) else (response_text or None)
+
     return CaseOutcome(
-        tool_calls=tool_calls, response_text=response_text, clarification=clarification
+        tool_calls=tool_calls, response_text=response_text, clarification=clarification,
+        out_of_scope=out_of_scope,
     )
