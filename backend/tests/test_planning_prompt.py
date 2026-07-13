@@ -4,9 +4,9 @@ from ai_platform.prompts.planning_prompt import AUTHOR, CHANGELOG, VERSION, buil
 
 
 def test_planning_prompt_is_versioned() -> None:
-    assert VERSION == "1.3.0"
+    assert VERSION == "1.4.0"
     assert AUTHOR
-    assert len(CHANGELOG) >= 4
+    assert len(CHANGELOG) >= 5
 
 
 def test_build_planning_prompt_embeds_tool_specs_and_schema_shapes() -> None:
@@ -87,3 +87,29 @@ def test_build_planning_prompt_disambiguates_get_customer_from_get_customer_bala
     prompt = build_planning_prompt("[]").lower()
     assert "get_customer" in prompt
     assert "get_customer_balance" in prompt
+
+
+def test_build_planning_prompt_teaches_the_out_of_scope_refusal_shape() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "out_of_scope_refusal" in prompt
+    assert "delete all invoices" in prompt
+
+
+def test_build_planning_prompt_teaches_aging_report_and_duplicate_detection_phrasings() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "get_aging_report" in prompt
+    assert "find_duplicate_invoices" in prompt
+    assert "aging report" in prompt
+    assert "duplicate invoices" in prompt
+
+
+def test_build_planning_prompt_teaches_search_customers_disambiguation() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "search_customers" in prompt
+    assert "fragment" in prompt
+
+
+def test_build_planning_prompt_teaches_vague_time_range_is_ambiguous() -> None:
+    prompt = build_planning_prompt("[]").lower()
+    assert "recent invoices" in prompt
+    assert "ambiguous" in prompt
