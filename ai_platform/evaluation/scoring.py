@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from ai_platform.evaluation.case_schema import EvalCase, ExpectedTool
@@ -43,6 +44,26 @@ def _tool_sequence_matches(expected: list[ExpectedTool], actual: list[ActualTool
     return all(e.tool == a.tool for e, a in zip(expected, actual, strict=True))
 
 
+def _is_matching_numeric_string(expected_value: Any, actual_value: Any) -> bool:
+    """Tolerate a JSON-string numeric parameter where a plain number was expected.
+
+    Real LLM planner output sometimes emits a numeric parameter (e.g.
+    ``minimum_amount``) as a JSON string (``"40000"``) instead of a JSON number
+    (``40000``). The tool's own Pydantic parameter model coerces this correctly
+    at execution time, so this is a scoring-comparison artifact, not a real
+    functional mismatch. Only plain ``int``/``float`` expected values qualify -
+    booleans, strings, and ``Decimal`` are excluded.
+    """
+    if isinstance(expected_value, bool) or not isinstance(expected_value, int | float):
+        return False
+    if not isinstance(actual_value, str):
+        return False
+    try:
+        return Decimal(actual_value) == Decimal(str(expected_value))
+    except (InvalidOperation, ValueError):
+        return False
+
+
 def _parameters_match(expected: dict[str, Any], actual: dict[str, Any]) -> tuple[bool, int, int]:
     total = len(expected)
     matched = 0
@@ -54,7 +75,9 @@ def _parameters_match(expected: dict[str, Any], actual: dict[str, Any]) -> tuple
             )
             if resolved:
                 matched += 1
-        elif actual_value == expected_value:
+        elif actual_value == expected_value or _is_matching_numeric_string(
+            expected_value, actual_value
+        ):
             matched += 1
     return matched == total, matched, total
 

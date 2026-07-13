@@ -113,6 +113,84 @@ def test_piped_sentinel_accepts_any_resolved_value_but_not_the_placeholder() -> 
     assert score_case(case, unresolved).metrics["parameters_correct"] is False
 
 
+def test_numeric_string_actual_value_matches_expected_int() -> None:
+    case = _case(
+        expected_tools=[
+            {"tool": "search_invoices", "parameters": {"minimum_amount": 40000}}
+        ]
+    )
+    outcome = CaseOutcome(
+        tool_calls=[
+            ActualToolCall(tool="search_invoices", parameters={"minimum_amount": "40000"})
+        ],
+        response_text="", clarification=None,
+    )
+    score = score_case(case, outcome)
+    assert score.passed is True
+    assert score.metrics["parameters_correct"] is True
+    assert score.parameter_pairs_matched == 1
+    assert score.parameter_pairs_total == 1
+
+
+def test_genuinely_wrong_numeric_string_still_fails() -> None:
+    case = _case(
+        expected_tools=[
+            {"tool": "search_invoices", "parameters": {"minimum_amount": 40000}}
+        ]
+    )
+    outcome = CaseOutcome(
+        tool_calls=[
+            ActualToolCall(tool="search_invoices", parameters={"minimum_amount": "5_000"})
+        ],
+        response_text="", clarification=None,
+    )
+    score = score_case(case, outcome)
+    assert score.passed is False
+    assert score.metrics["parameters_correct"] is False
+    assert score.parameter_pairs_matched == 0
+    assert score.parameter_pairs_total == 1
+
+
+def test_exact_string_parameter_still_requires_exact_match() -> None:
+    case = _case(
+        expected_tools=[
+            {"tool": "search_invoices", "parameters": {"invoice_number": "INV-7051"}}
+        ]
+    )
+    matching = CaseOutcome(
+        tool_calls=[
+            ActualToolCall(tool="search_invoices", parameters={"invoice_number": "INV-7051"})
+        ],
+        response_text="", clarification=None,
+    )
+    assert score_case(case, matching).metrics["parameters_correct"] is True
+
+    non_matching = CaseOutcome(
+        tool_calls=[
+            ActualToolCall(tool="search_invoices", parameters={"invoice_number": "INV-9999"})
+        ],
+        response_text="", clarification=None,
+    )
+    assert score_case(case, non_matching).metrics["parameters_correct"] is False
+
+
+def test_piped_sentinel_unaffected_by_numeric_string_leniency() -> None:
+    case = _case(
+        expected_tools=[
+            {"tool": "get_customer", "parameters": {"customer_name": "Acme"}},
+            {"tool": "get_overdue_invoices", "parameters": {"customer_id": "<piped>"}},
+        ]
+    )
+    outcome = CaseOutcome(
+        tool_calls=[
+            ActualToolCall(tool="get_customer", parameters={"customer_name": "Acme"}),
+            ActualToolCall(tool="get_overdue_invoices", parameters={"customer_id": "40000"}),
+        ],
+        response_text="", clarification=None,
+    )
+    assert score_case(case, outcome).metrics["parameters_correct"] is True
+
+
 def test_fails_when_clarification_expected_but_none_happened() -> None:
     case = _case(expected_clarification=True)
     outcome = CaseOutcome(
