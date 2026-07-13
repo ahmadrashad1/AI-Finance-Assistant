@@ -1,0 +1,9 @@
+id: aging_report_basic
+category: aging_report
+user_message: "Generate an aging report"
+expectations:
+  expected_tools:
+    - tool: get_aging_report
+      parameters: {}
+  required_facts:
+    - "2650349.70"

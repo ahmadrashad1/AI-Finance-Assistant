@@ -1,0 +1,11 @@
+id: duplicate_detection_second_pair
+category: duplicate_detection
+user_message: "Is invoice INV-9004 a duplicate of anything?"
+expectations:
+  expected_tools:
+    - tool: find_duplicate_invoices
+      parameters:
+        invoice_number: "INV-9004"
+  required_facts:
+    - "Harbor Materials"
+    - "17496.00"

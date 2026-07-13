@@ -1,0 +1,7 @@
+id: aging_report_bucket_specific
+category: aging_report
+user_message: "Break down what customers owe us by how late they are"
+expectations:
+  expected_tools:
+    - tool: get_aging_report
+      parameters: {}

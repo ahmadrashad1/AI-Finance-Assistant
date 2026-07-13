@@ -1,0 +1,9 @@
+id: aging_report_explanation
+category: aging_report
+user_message: "How much is overdue by bucket, and what does that tell us?"
+expectations:
+  expected_tools:
+    - tool: get_aging_report
+      parameters: {}
+  required_facts:
+    - "2202646.50"

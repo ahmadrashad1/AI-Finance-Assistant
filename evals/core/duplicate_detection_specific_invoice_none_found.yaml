@@ -1,0 +1,8 @@
+id: duplicate_detection_specific_invoice_none_found
+category: duplicate_detection
+user_message: "Has invoice INV-7051 been entered before?"
+expectations:
+  expected_tools:
+    - tool: find_duplicate_invoices
+      parameters:
+        invoice_number: "INV-7051"

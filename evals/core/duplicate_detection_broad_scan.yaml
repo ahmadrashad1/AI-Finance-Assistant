@@ -1,0 +1,9 @@
+id: duplicate_detection_broad_scan
+category: duplicate_detection
+user_message: "Find duplicate invoices"
+expectations:
+  expected_tools:
+    - tool: find_duplicate_invoices
+      parameters: {}
+  required_facts:
+    - "Anchor Manufacturing"

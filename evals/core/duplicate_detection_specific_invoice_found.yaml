@@ -1,0 +1,11 @@
+id: duplicate_detection_specific_invoice_found
+category: duplicate_detection
+user_message: "Check whether invoice INV-9002 already exists"
+expectations:
+  expected_tools:
+    - tool: find_duplicate_invoices
+      parameters:
+        invoice_number: "INV-9002"
+  required_facts:
+    - "Cascade Materials"
+    - "91287.00"
