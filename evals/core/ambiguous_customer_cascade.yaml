@@ -1,0 +1,11 @@
+id: ambiguous_customer_cascade
+category: ambiguous_name
+user_message: "What does Cascade owe us?"
+expectations:
+  expected_tools:
+    - tool: search_customers
+      parameters:
+        name_query: "Cascade"
+  required_facts:
+    - "Cascade Systems"
+    - "Cascade Logistics"

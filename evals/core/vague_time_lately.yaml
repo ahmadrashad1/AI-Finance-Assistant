@@ -1,0 +1,5 @@
+id: vague_time_lately
+category: vague_time_range
+user_message: "What invoices came in lately?"
+expectations:
+  expected_clarification: true

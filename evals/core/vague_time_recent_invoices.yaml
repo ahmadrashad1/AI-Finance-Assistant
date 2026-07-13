@@ -1,0 +1,5 @@
+id: vague_time_recent_invoices
+category: vague_time_range
+user_message: "Show me recent invoices"
+expectations:
+  expected_clarification: true

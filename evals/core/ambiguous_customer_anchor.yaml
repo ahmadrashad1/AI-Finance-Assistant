@@ -1,0 +1,11 @@
+id: ambiguous_customer_anchor
+category: ambiguous_name
+tests_memory: true
+conversation_setup:
+  - user_message: "Show me Anchor's invoices"
+user_message: "Anchor Components"
+expectations:
+  expected_tools:
+    - tool: get_customer_balance
+      parameters:
+        customer_name: "Anchor Components"
