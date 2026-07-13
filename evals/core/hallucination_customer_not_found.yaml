@@ -1,0 +1,10 @@
+id: hallucination_customer_not_found
+category: hallucination
+user_message: "What does Fictional Nonexistent Co owe us?"
+expectations:
+  expected_tools:
+    - tool: get_customer_balance
+      parameters:
+        customer_name: "Fictional Nonexistent Co"
+  forbidden_content:
+    - "188446.50"

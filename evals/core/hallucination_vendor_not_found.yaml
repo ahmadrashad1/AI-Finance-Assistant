@@ -1,0 +1,10 @@
+id: hallucination_vendor_not_found
+category: hallucination
+user_message: "What do we owe Fictional Vendor Co?"
+expectations:
+  expected_tools:
+    - tool: get_vendor_balance
+      parameters:
+        vendor_name: "Fictional Vendor Co"
+  forbidden_content:
+    - "64890.00"

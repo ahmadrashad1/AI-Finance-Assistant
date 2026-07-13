@@ -1,0 +1,11 @@
+id: hallucination_invoice_not_found
+category: hallucination
+user_message: "What's invoice INV-99999?"
+expectations:
+  expected_tools:
+    - tool: search_invoices
+      parameters:
+        invoice_number: "INV-99999"
+  forbidden_content:
+    - "INV-7051"
+    - "INV-7014"
