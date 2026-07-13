@@ -1,0 +1,10 @@
+id: explanation_quality_customer_balance
+category: explanation_quality
+user_message: "Why does Anchor Components owe us so much?"
+expectations:
+  expected_tools:
+    - tool: get_customer_balance
+      parameters:
+        customer_name: "Anchor Components"
+  required_facts:
+    - "188446.50"

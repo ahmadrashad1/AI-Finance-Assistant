@@ -1,0 +1,11 @@
+id: explanation_quality_payment_prioritization
+category: explanation_quality
+user_message: "Which invoices should I pay first, and why?"
+expectations:
+  expected_tools:
+    - tool: get_vendor_invoices
+      parameters: {}
+    - tool: get_cash_position
+      parameters: {}
+  required_facts:
+    - "918201.30"

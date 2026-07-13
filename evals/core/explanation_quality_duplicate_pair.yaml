@@ -1,0 +1,11 @@
+id: explanation_quality_duplicate_pair
+category: explanation_quality
+user_message: "Are INV-9003 and INV-7077 duplicates? Explain why."
+expectations:
+  expected_tools:
+    - tool: find_duplicate_invoices
+      parameters:
+        invoice_number: "INV-9003"
+  required_facts:
+    - "Titan Components"
+    - "20223.00"
