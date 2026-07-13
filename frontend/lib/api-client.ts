@@ -34,7 +34,17 @@ export interface ChatToolCallEvent {
   tool: string;
 }
 
-export type ChatStreamEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatToolCallEvent;
+export interface ChatRequestIdEvent {
+  type: "request_id";
+  request_id: string;
+}
+
+export type ChatStreamEvent =
+  | ChatTokenEvent
+  | ChatDoneEvent
+  | ChatErrorEvent
+  | ChatToolCallEvent
+  | ChatRequestIdEvent;
 
 export interface ConversationSummary {
   id: string;
@@ -76,6 +86,11 @@ export async function* streamChat(
   });
   if (!response.ok || !response.body) {
     throw new Error(`Chat request failed with status ${response.status}`);
+  }
+
+  const requestId = response.headers.get("x-request-id");
+  if (requestId) {
+    yield { type: "request_id", request_id: requestId };
   }
 
   const reader = response.body.getReader();
@@ -121,4 +136,33 @@ export async function getConversationMessages(
     throw new Error(`Failed to load messages with status ${response.status}`);
   }
   return (await response.json()) as ConversationMessage[];
+}
+
+export interface ToolExecutionTraceEntry {
+  tool: string;
+  parameters: Record<string, unknown>;
+  status: string;
+  duration_ms: number;
+  error_message: string | null;
+}
+
+export interface RequestTrace {
+  request_id: string;
+  conversation_id: string;
+  plan: Record<string, unknown>;
+  planning_prompt_version: string;
+  system_prompt_version: string;
+  total_duration_ms: number | null;
+  tool_executions: ToolExecutionTraceEntry[];
+}
+
+export async function getTrace(requestId: string): Promise<RequestTrace> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/trace/${encodeURIComponent(requestId)}`,
+    { cache: "no-store" },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to load trace with status ${response.status}`);
+  }
+  return (await response.json()) as RequestTrace;
 }

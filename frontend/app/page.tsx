@@ -64,20 +64,27 @@ export default function HomePage() {
       setIsStreaming(true);
 
       let assistantContent = "";
+      let requestId: string | undefined;
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       try {
         for await (const event of streamChat(sessionId, message, activeConversationId)) {
-          if (event.type === "tool_call") {
+          if (event.type === "request_id") {
+            requestId = event.request_id;
             setMessages((prev) => [
               ...prev.slice(0, -1),
-              { role: "assistant", content: `Running ${event.tool}…` },
+              { role: "assistant", content: assistantContent, requestId },
+            ]);
+          } else if (event.type === "tool_call") {
+            setMessages((prev) => [
+              ...prev.slice(0, -1),
+              { role: "assistant", content: `Running ${event.tool}…`, requestId },
             ]);
           } else if (event.type === "token") {
             assistantContent += event.content;
             setMessages((prev) => [
               ...prev.slice(0, -1),
-              { role: "assistant", content: assistantContent },
+              { role: "assistant", content: assistantContent, requestId },
             ]);
           } else if (event.type === "done") {
             setActiveConversationId(event.conversation_id);
