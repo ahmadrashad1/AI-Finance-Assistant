@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_current_date\",\n         \"parameters\": {}\n      }\n   ]\n}",
+  "response_text": "Today's date is 2026-07-13, a Monday."
+}

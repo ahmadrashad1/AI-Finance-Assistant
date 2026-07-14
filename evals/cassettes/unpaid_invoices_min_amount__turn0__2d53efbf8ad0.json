@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[  \n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\":{\n            \"minimum_amount\":10000\n         }\n      }\n   ]\n}",
+  "response_text": "Here are the unpaid invoices over $10,000:\n\n| Invoice Number | Customer Name    | Total        |\n|----------------|------------------|--------------|\n| INV-7191      | Anchor Materials | 96,795.00    |\n| INV-9002      | Cascade Materials | 91,287.00    |\n| INV-7060      | Cascade Manufacturing | 86,643.00 |\n| INV-7152      | Summit Components | 83,997.00    |\n\nSummary: I'm showing only the top 4 records of 71 total invoices.\n\nI used the \"balance\" field in each invoice to determine which invoices were over $10,000."
+}

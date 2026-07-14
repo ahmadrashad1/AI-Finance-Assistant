@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[{\n      \"tool\":\"get_customer\",\n      \"parameters\":{\n         \"customer_name\":\"Fictional Nonexistent Co\"\n      }\n   },{\n      \"tool\":\"get_unpaid_invoices\",\n      \"parameters\":{\n         \"customer_id\":\"$step0.customer_code\"\n      }\n   }]\n}",
+  "response_text": "Unfortunately, I couldn't find any information about Fictional Nonexistent Co because it doesn't exist. The tool result indicates that the \"get_customer\" and \"get_unpaid_invoices\" tools failed to find this customer, likely because it's fictional and not in the system."
+}

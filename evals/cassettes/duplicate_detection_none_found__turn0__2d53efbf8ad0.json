@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"find_duplicate_invoices\",\n         \"parameters\": {\n            \"invoice_number\": \"INV-7051\"\n         }\n      }\n   ]\n}",
+  "response_text": "Based on the provided tool result, it appears that there are no duplicate invoices, including INV-7051. The tool's \"summary\" section shows a \"group_count\" of 0 and an \"invoice_count\" of 0."
+}

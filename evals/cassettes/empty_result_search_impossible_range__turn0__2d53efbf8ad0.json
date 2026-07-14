@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"due_before\": \"2020-01-01\",\n            \"status\": \"overdue\"\n         }\n      }\n   ]\n}",
+  "response_text": "There are no invoices due before January 1, 2020. The tool results show a count of 0 invoices."
+}

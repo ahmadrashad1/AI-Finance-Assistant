@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"out_of_scope_refusal\": \"I'm a financial assistant, not an order management system. I can help with questions about invoices, customers, and financial reports, but cannot directly approve or reject purchase orders. If you need to confirm a PO, you can consider asking me to verify the status of the associated vendor or invoices instead.\"\n}",
+  "response_text": ""
+}

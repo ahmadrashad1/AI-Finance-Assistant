@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[\n      {\n         \"tool\":\"search_invoices\",\n         \"parameters\":{\n            \"minimum_amount\":\"$50,000\"\n         }\n      }\n   ]\n}",
+  "response_text": "I'm sorry, the provided tool results indicate there was an error in the tool call, specifically in the format of the minimum amount parameter. Unfortunately, I don't have a list of invoices to show you as the tool did not execute successfully. \n\nIf you'd like to try running the tool again with a valid minimum amount parameter, or if you'd like to ask something else, I'm here to help!"
+}

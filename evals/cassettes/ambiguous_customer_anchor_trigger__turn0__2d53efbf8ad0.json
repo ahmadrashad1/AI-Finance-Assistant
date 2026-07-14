@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"Anchor\"\n         }\n      },\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"customer_id\": \"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, I couldn't find any information about Anchor's invoices due to errors in the results of the tools I used. Specifically:\n\n- The 'get_customer' tool failed because the customer \"Anchor\" was not found.\n- The 'search_invoices' tool failed because it couldn't resolve the customer code, which was not successfully obtained from the 'get_customer' tool.\n\nI don't have any information to show you about Anchor's invoices."
+}

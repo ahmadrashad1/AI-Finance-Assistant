@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_vendor_balance\",\n         \"parameters\": {\n            \"vendor_name\": \"Fictional Vendor Co\"\n         }\n      }\n   ]\n}",
+  "response_text": "I couldn't find any information on the balance owed to Fictional Vendor Co. It seems the tool couldn't find the vendor, which means we don't have the necessary data to answer your question."
+}

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"search_customers\",\n         \"parameters\": {\n            \"name_query\": \"Anchor Components\"\n         }\n      },\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"$step0.merged_matches[0].match\"\n         }\n      },\n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\": {\n            \"customer_id\": \"$step1.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "It looks like we found a match for \"Anchor Components\" as Anchor Components (CUST-0003). However, we were unable to retrieve more information about the customer due to a tool failure.\n\nWe were also unable to retrieve the customer's unpaid invoices due to the same tool failure.\n\nDo you mean the \"Anchor Components\" (CUST-0003) match by this name?"
+}

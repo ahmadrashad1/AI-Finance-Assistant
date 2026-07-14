@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_vendor_balance\",\n         \"parameters\": {\n            \"vendor_name\": \"Pioneer Manufacturing\"\n         }\n      }\n   ]\n}",
+  "response_text": "According to the tool results, you owe Pioneer Manufacturing a total of $203,600.00. \n\nThey have 1 open invoice with the oldest due date being April 29, 2025."
+}

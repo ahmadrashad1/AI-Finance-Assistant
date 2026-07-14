@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      { \"tool\": \"get_aging_report\", \"parameters\": {} }\n   ]\n}",
+  "response_text": "Here is the aging report:\n\n| Label | Invoice Count | Total Balance |\n| --- | --- | --- |\n| **current** | 7 | $144,239.40 |\n| 0-30 | 1 | $18,219.60 |\n| 31-60 | 6 | $191,014.20 |\n| 61-90 | 2 | $94,230.00 |\n| 90+ | 71 | $2,202,646.50 |\n\n**Grand Total: $2,650,349.70**\n\n**Note:** We are showing only the top records out of 71 (\"90+\") out of the total count. The true total invoice count is 81 and the grand total is $2,650,349.70."
+}

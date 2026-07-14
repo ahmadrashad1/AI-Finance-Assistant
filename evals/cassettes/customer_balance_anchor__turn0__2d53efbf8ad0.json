@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer_balance\",\n         \"parameters\": {\n            \"customer_name\": \"Anchor Components\"\n         }\n      }\n   ]\n}",
+  "response_text": "Anchor Components owes us $188,446.50, with 5 unpaid invoices and the oldest due date being March 25, 2025. \n\nHere are the unpaid invoices:\n\n| Due Date       | Invoice Amount |\n|----------------|----------------|\n| 2024-06-17     | 40,919.19      |\n| 2024-09-01     | 31,419.90      |\n| 2024-11-15     | 22,001.40      |\n| **Truncated: true**\n| ...            | ...            |\n| **Summary:** 5 records out of a total of 5 records. \n\nNote: As the tool result includes \"_truncated\": true, we are only showing the top 5 unpaid invoices out of the total 5 records."
+}

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n        \"tool\": \"get_current_date\",\n        \"parameters\": {}\n      },\n      {\n        \"tool\": \"search_invoices\",\n        \"parameters\": {\n          \"due_after\": \"2025-08-01\"\n        }\n      }\n   ]\n}",
+  "response_text": "We are showing only the top records of 7 out of a total of 148 invoices due. Here is the list of invoices due after August 1, 2025:\n\n| Invoice # | Customer | Due Date |\n| --- | --- | --- |\n| INV-7032 | Granite Systems | 2025-08-02 |\n| INV-7118 | Beacon Industries | 2025-08-04 |\n| INV-7140 | Vertex Logistics | 2025-08-07 |\n| INV-7042 | Crestline Holdings | 2025-08-08 |\n| INV-7062 | Horizon Distribution | 2025-08-10 |\n| INV-7046 | Redwood Manufacturing | 2025-08-11 |\n| INV-7006 | Summit Manufacturing | 2025-08-14 |\n\nThe total count of invoices due is 148, with a total amount of 4526064.00."
+}

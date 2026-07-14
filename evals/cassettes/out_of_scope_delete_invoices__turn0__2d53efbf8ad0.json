@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"out_of_scope_refusal\": \"Can't delete invoices: can show unpaid/overdue invoices and their balances, search for invoices by customer/vendor, generate an aging report, and identify potential duplicates - but deleting invoices isn't a standard finance feature. However, I can answer your questions about invoices, help with financial tasks, or tell you about your current billing status if you'd like.\"\n}",
+  "response_text": ""
+}

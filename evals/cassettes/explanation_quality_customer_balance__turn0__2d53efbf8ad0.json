@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n        \"tool\": \"get_customer\",\n        \"parameters\": {\n          \"customer_name\": \"Anchor Components\"\n        }\n      },\n      {\n        \"tool\": \"get_customer_balance\",\n        \"parameters\": {\n          \"customer_id\": \"$step0.customer_code\"\n        }\n      }\n    ]\n}",
+  "response_text": "The tool results are incomplete and cannot be used to determine why Anchor Components owes us so much or by how much, specifically. I'd need a separate function result that reports their balance to answer this question. \n\nHowever, I can tell you the name of the customer in question from tool results is Anchor Components, and it has a customer code of CUST-0003."
+}

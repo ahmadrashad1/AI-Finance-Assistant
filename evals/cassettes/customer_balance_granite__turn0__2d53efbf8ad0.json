@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"Granite Systems\"\n         }\n      },\n      {\n         \"tool\": \"get_customer_balance\",\n         \"parameters\": {\n            \"customer_id\": \"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "The tool result didn't include the data for the balance of Granite Systems. Unfortunately, I don't have enough information to determine how much Granite Systems owes us. \n\nTo resolve this, I would recommend using the customer code 'CUST-0013' (if available in your system) or customer name 'Granite Systems' as a parameter in a valid 'get_customer_balance' request."
+}

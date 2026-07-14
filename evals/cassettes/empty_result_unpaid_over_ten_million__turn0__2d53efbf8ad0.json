@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\": {\n            \"minimum_amount\": \"10000000\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, there are no unpaid invoices over $10,000,000. \n\n**Unpaid Invoices Table**\n| Supplier Name | Amount Outstanding |\n| --- | --- |\n|  |  |\n\nThere are 0 unpaid invoices listed, and the total outstanding amount is $0."
+}

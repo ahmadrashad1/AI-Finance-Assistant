@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"Anchor Components\"\n         }\n      }\n   ]\n}",
+  "response_text": "We found information about Anchor Components, but we need your confirmation that CUST-0003 is the correct code for Anchor Components. Is this correct?"
+}

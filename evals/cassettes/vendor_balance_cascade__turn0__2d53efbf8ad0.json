@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer_balance\",\n         \"parameters\": {\n            \"customer_name\": \"Cascade Industries\"\n         }\n      }\n   ]\n}",
+  "response_text": "I couldn't find the balance you owe to Cascade Industries. The tool \"get_customer_balance\" failed with an error message indicating the customer was not found in the system."
+}
