@@ -12,6 +12,7 @@ import {
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { MessageList, type DisplayMessage } from "@/components/chat/MessageList";
+import styles from "./page.module.css";
 
 export default function HomePage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export default function HomePage() {
   );
 
   return (
-    <main style={{ display: "flex", height: "100vh" }}>
+    <main className={styles.workspace}>
       <ConversationSidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
@@ -119,12 +120,11 @@ export default function HomePage() {
         onNewConversation={handleNewConversation}
         disabled={isStreaming}
       />
-      <section style={{ flex: 1, display: "flex", flexDirection: "column", padding: "1rem" }}>
-        <h1>AI Finance Assistant</h1>
-        <div style={{ flex: 1, overflowY: "auto" }}>
+      <section className={styles.dialogue}>
+        <div className={styles.scroll}>
           <MessageList messages={messages} />
         </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className={styles.errorCard} role="alert">{error}</p>}
         <MessageInput disabled={isStreaming || !sessionId} onSend={handleSend} />
       </section>
     </main>

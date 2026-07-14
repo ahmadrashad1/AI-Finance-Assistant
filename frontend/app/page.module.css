@@ -1,0 +1,32 @@
+.workspace {
+  display: flex;
+  height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, #241c15 0%, transparent 60%),
+    var(--wall);
+  overflow: hidden;
+}
+
+.dialogue {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 2rem 1.5rem;
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.errorCard {
+  background: var(--surface);
+  border-left: 3px solid var(--ember);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.9rem;
+  margin: 0.5rem 0;
+}

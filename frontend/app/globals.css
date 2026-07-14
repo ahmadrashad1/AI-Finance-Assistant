@@ -1,32 +1,55 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
+
+  --room: #15110d;
+  --wall: #1e1813;
+  --surface: #211a14;
+  --surface-raised: #241d16;
+  --seam: #2c241c;
+  --seam-strong: #3a2e22;
+  --ink: #e8dfd3;
+  --ink-soft: #d9c9a8;
+  --pencil: #8a7a65;
+  --pencil-faint: #6e5f4e;
+  --brass: #c98a3d;
+  --ember: #c96f3d;
+  --sage: #7fa07c;
+
+  --serif: var(--font-serif), Georgia, "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: var(--font-mono), "Courier New", monospace;
+
+  --radius-card: 8px;
+  --radius-chip: 14px;
+  --shadow-card: 0 3px 8px rgba(0, 0, 0, 0.35);
+  --shadow-drawer: -8px 0 18px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  background: var(--room);
+  color: var(--ink);
+  font-family: var(--sans);
 }
 
-main {
-  max-width: 40rem;
-  margin: 4rem auto;
-  padding: 0 1.5rem;
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
 }
 
-table {
-  border-collapse: collapse;
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
+button {
+  font-family: var(--sans);
 }
 
-th,
-td {
-  border: 1px solid currentColor;
-  padding: 0.25rem 0.5rem;
-  text-align: left;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
