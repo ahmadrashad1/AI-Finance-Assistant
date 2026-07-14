@@ -38,3 +38,21 @@ the Milestone 10 plan (Task 2 steps 1–7).
 
 **Net result:** one genuine violation (row 1, pre-known, fixed in Task 3); two documented
 judgment calls (rows 2, 8); everything else clean.
+
+## Friendly-error fix verification (Task 3)
+
+- TDD: 3 new executor tests + 2 new `_build_response_message` tests, failing-first, now
+  green; 1 existing test (`test_unresolvable_reference_degrades_gracefully...`) updated
+  to pin the new friendly contract (deliberate contract change, not expectation-loosening
+  — eval expectations untouched).
+- Full suite after fix: **445 passed**; ruff/mypy clean (106 files).
+- Eval recorded after fix: **39/53, 76.7%/94.4%/0.0%, no STALE** — unchanged, as designed
+  (cassettes key on case+turn+prompt-hash, not request content).
+- Live repro (HANDOFF §5): *"What is Anchor's current outstanding balance?"* →
+  `get_customer_balance` failed with the business error and the streamed reply was:
+  > Unfortunately, I'm unable to find the current outstanding balance for Anchor. The
+  > tool result indicates an error: "Customer not found: Anchor".
+  No `$step0`, no `Tool '...' failed:`, no Pydantic internals. Guardrails intact.
+- Known drift (documented, acceptable): recorded Phase-2 cassettes for error-path cases
+  were recorded against the old raw error text; live behavior is now friendlier. A
+  re-record folds into the next prompt-version bump.

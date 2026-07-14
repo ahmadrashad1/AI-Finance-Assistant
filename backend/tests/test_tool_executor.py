@@ -215,3 +215,100 @@ async def test_execution_row_is_committed_immediately_inside_execute(
         rows = await verify_repo.list_for_conversation(conversation_id)
         assert len(rows) == 1
         assert rows[0].status == "success"
+
+
+async def _not_found_handler(params: _OkParams, context: ToolContext) -> _OkResult:
+    raise ValueError("Customer not found: Anchor")
+
+
+@pytest.mark.asyncio
+async def test_business_value_error_passes_through_as_user_message(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    conversation_id = await _make_conversation(db_session, "session-friendly-1")
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="get_customer",
+            description="Fetch a customer.",
+            parameters_model=_OkParams,
+            result_model=_OkResult,
+            handler=_not_found_handler,
+        )
+    )
+    executor = ToolExecutor(registry, ToolExecutionRepository(db_session), db_session)
+
+    outcome = await executor.execute(
+        request_id="req-friendly-1",
+        conversation_id=conversation_id,
+        tool="get_customer",
+        parameters={"value": 1},
+    )
+
+    assert outcome.status == "error"
+    # Business message passes through untouched; no internal framing.
+    assert outcome.user_error_message == "Customer not found: Anchor"
+    # Developer detail is preserved for logs/traces.
+    assert "get_customer" in (outcome.error_message or "")
+
+
+@pytest.mark.asyncio
+async def test_unexpected_exception_masked_in_user_message(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    conversation_id = await _make_conversation(db_session, "session-friendly-2")
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="double_it",
+            description="Doubles a number.",
+            parameters_model=_OkParams,
+            result_model=_OkResult,
+            handler=_crashing_handler,
+        )
+    )
+    executor = ToolExecutor(registry, ToolExecutionRepository(db_session), db_session)
+
+    outcome = await executor.execute(
+        request_id="req-friendly-2",
+        conversation_id=conversation_id,
+        tool="double_it",
+        parameters={"value": 1},
+    )
+
+    assert outcome.status == "error"
+    assert outcome.user_error_message is not None
+    assert "boom" not in outcome.user_error_message
+    assert "internal error" in outcome.user_error_message
+    assert "boom" in (outcome.error_message or "")
+
+
+@pytest.mark.asyncio
+async def test_invalid_parameters_masked_in_user_message(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    conversation_id = await _make_conversation(db_session, "session-friendly-3")
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="double_it",
+            description="Doubles a number.",
+            parameters_model=_OkParams,
+            result_model=_OkResult,
+            handler=_ok_handler,
+        )
+    )
+    executor = ToolExecutor(registry, ToolExecutionRepository(db_session), db_session)
+
+    outcome = await executor.execute(
+        request_id="req-friendly-3",
+        conversation_id=conversation_id,
+        tool="double_it",
+        parameters={"value": "$50,000"},
+    )
+
+    assert outcome.status == "error"
+    assert outcome.user_error_message is not None
+    # Pydantic internals must not reach the user.
+    assert "pydantic" not in outcome.user_error_message.lower()
+    assert "validation error" not in outcome.user_error_message.lower()
