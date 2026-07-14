@@ -95,3 +95,81 @@ export function renderInlineMarkdown(text: string): string {
   flushProse();
   return htmlParts.join("");
 }
+
+export interface TableSegment {
+  kind: "table";
+  headerCells: string[];
+  bodyRows: string[][];
+}
+
+export interface ProseSegment {
+  kind: "prose";
+  text: string;
+}
+
+export type MessageSegment = ProseSegment | TableSegment;
+
+// Pure string splitting - no business rules. Walks the same GFM-table
+// grammar renderInlineMarkdown uses, but returns structured segments so
+// the UI can route prose to the dialogue and tables to the drawer.
+export function splitMessageContent(content: string): MessageSegment[] {
+  const lines = content.split("\n");
+  const segments: MessageSegment[] = [];
+  let proseBuffer: string[] = [];
+
+  const flushProse = () => {
+    const text = proseBuffer.join("\n").trim();
+    if (text.length > 0) {
+      segments.push({ kind: "prose", text });
+    }
+    proseBuffer = [];
+  };
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i]!;
+    const next = lines[i + 1];
+    if (
+      isTableRowLine(line) &&
+      next !== undefined &&
+      isTableRowLine(next) &&
+      isSeparatorRow(parseTableRow(next))
+    ) {
+      flushProse();
+      const headerCells = parseTableRow(line);
+      const bodyRows: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && isTableRowLine(lines[j]!)) {
+        bodyRows.push(parseTableRow(lines[j]!));
+        j++;
+      }
+      segments.push({ kind: "table", headerCells, bodyRows });
+      i = j;
+    } else {
+      proseBuffer.push(line);
+      i++;
+    }
+  }
+  flushProse();
+  return segments;
+}
+
+// Drawer header: nearest prose line before the first table (last non-empty
+// line, stripped of markdown emphasis/heading markers), else "Result".
+export function deriveArtifactTitle(segments: MessageSegment[]): string {
+  const firstTableIndex = segments.findIndex((s) => s.kind === "table");
+  if (firstTableIndex > 0) {
+    const before = segments[firstTableIndex - 1];
+    if (before && before.kind === "prose") {
+      const lines = before.text.split("\n").filter((l) => l.trim().length > 0);
+      const last = lines[lines.length - 1];
+      if (last) {
+        const cleaned = last.replace(/^#+\s*/, "").replace(/\*\*/g, "").replace(/:\s*$/, "").trim();
+        if (cleaned.length > 0 && cleaned.length <= 80) {
+          return cleaned;
+        }
+      }
+    }
+  }
+  return "Result";
+}
