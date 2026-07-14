@@ -1,35 +1,34 @@
 "use client";
 
-import { useState } from "react";
-
 import { renderInlineMarkdown } from "./markdown";
-import { TracePanel } from "./TracePanel";
+import styles from "./MessageBubble.module.css";
 
 export interface MessageBubbleProps {
   role: string;
   content: string;
-  requestId?: string | undefined;
+  hasTables: boolean;
+  onShowArtifact?: (() => void) | undefined;
 }
 
-export function MessageBubble({ role, content, requestId }: MessageBubbleProps) {
-  const [showTrace, setShowTrace] = useState(false);
+export function MessageBubble({ role, content, hasTables, onShowArtifact }: MessageBubbleProps) {
+  if (role === "user") {
+    return (
+      <div className={styles.userRow}>
+        <span className={styles.userCard}>{content}</span>
+      </div>
+    );
+  }
 
   return (
-    <div data-role={role} style={{ margin: "0.5rem 0" }}>
-      <strong>{role === "user" ? "You" : "Assistant"}:</strong>{" "}
-      <span dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(content) }} />
-      {role === "assistant" && requestId && (
-        <>
-          {" "}
-          <button
-            type="button"
-            onClick={() => setShowTrace((prev) => !prev)}
-            style={{ fontSize: "0.75rem", cursor: "pointer" }}
-          >
-            {showTrace ? "Hide trace" : "View trace"}
-          </button>
-          {showTrace && <TracePanel requestId={requestId} />}
-        </>
+    <div className={styles.assistant}>
+      <span
+        className={styles.prose}
+        dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(content) }}
+      />
+      {hasTables && onShowArtifact && (
+        <button type="button" className={styles.deskLink} onClick={onShowArtifact}>
+          on the desk →
+        </button>
       )}
     </div>
   );

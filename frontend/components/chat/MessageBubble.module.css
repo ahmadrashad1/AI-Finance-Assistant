@@ -1,0 +1,71 @@
+.userRow {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1.1rem 0;
+  animation: rise 150ms ease-out;
+}
+
+.userCard {
+  background: var(--surface-raised);
+  border-radius: 10px 10px 2px 10px;
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 70%;
+  padding: 0.55rem 0.9rem;
+}
+
+.assistant {
+  margin: 1.1rem 0;
+  animation: rise 150ms ease-out;
+}
+
+.prose {
+  display: block;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.65;
+  max-width: 65ch;
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: var(--ink-soft);
+}
+
+.prose strong {
+  color: var(--ink-soft);
+}
+
+.deskLink {
+  display: inline-block;
+  background: transparent;
+  border: none;
+  color: var(--brass);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  margin-top: 0.4rem;
+  padding: 0;
+  transition: opacity 120ms ease;
+}
+
+.deskLink:hover {
+  opacity: 0.8;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

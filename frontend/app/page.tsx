@@ -77,10 +77,7 @@ export default function HomePage() {
               { role: "assistant", content: assistantContent, requestId },
             ]);
           } else if (event.type === "tool_call") {
-            setMessages((prev) => [
-              ...prev.slice(0, -1),
-              { role: "assistant", content: `Running ${event.tool}…`, requestId },
-            ]);
+            // wired in drawer task
           } else if (event.type === "token") {
             assistantContent += event.content;
             setMessages((prev) => [
@@ -122,7 +119,7 @@ export default function HomePage() {
       />
       <section className={styles.dialogue}>
         <div className={styles.scroll}>
-          <MessageList messages={messages} />
+          <MessageList messages={messages} thinkingTool={null} onShowArtifact={() => {}} />
         </div>
         {error && <p className={styles.errorCard} role="alert">{error}</p>}
         <MessageInput disabled={isStreaming || !sessionId} onSend={handleSend} />
