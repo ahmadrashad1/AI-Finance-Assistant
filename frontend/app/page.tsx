@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   getConversationMessages,
@@ -64,13 +64,11 @@ export default function HomePage() {
       ? (artifacts.find((a) => a.messageIndex === drawerIndex) ?? null)
       : null;
 
-  // Unpinned drawer follows the newest artifact as it arrives.
-  useEffect(() => {
-    if (!drawerPinned && latestArtifact && !isStreaming) {
-      setDrawerIndex(latestArtifact.messageIndex);
-      setDrawerTab("result");
-    }
-  }, [latestArtifact, drawerPinned, isStreaming]);
+  const pinnedRef = useRef(false);
+  const setPinned = useCallback((value: boolean) => {
+    pinnedRef.current = value;
+    setDrawerPinned(value);
+  }, []);
 
   useEffect(() => {
     setSessionId(getSessionId());
@@ -89,15 +87,18 @@ export default function HomePage() {
 
   const closeDrawer = useCallback(() => {
     setDrawerIndex(null);
-    setDrawerPinned(false);
-  }, []);
+    setPinned(false);
+  }, [setPinned]);
 
-  const handleShowArtifact = useCallback((messageIndex: number) => {
-    // An explicit click wins: open that artifact and clear any pin (spec).
-    setDrawerIndex(messageIndex);
-    setDrawerPinned(false);
-    setDrawerTab("result");
-  }, []);
+  const handleShowArtifact = useCallback(
+    (messageIndex: number) => {
+      // An explicit click wins: open that artifact and clear any pin (spec).
+      setDrawerIndex(messageIndex);
+      setPinned(false);
+      setDrawerTab("result");
+    },
+    [setPinned],
+  );
 
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
@@ -128,6 +129,7 @@ export default function HomePage() {
         return;
       }
       setError(null);
+      const assistantIndex = messages.length + 1;
       setMessages((prev) => [...prev, { role: "user", content: message }]);
       setIsStreaming(true);
 
@@ -167,6 +169,14 @@ export default function HomePage() {
             });
           }
         }
+
+        if (
+          !pinnedRef.current &&
+          splitMessageContent(assistantContent).some((s) => s.kind === "table")
+        ) {
+          setDrawerIndex(assistantIndex);
+          setDrawerTab("result");
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       } finally {
@@ -174,8 +184,17 @@ export default function HomePage() {
         setThinkingTool(null);
       }
     },
-    [sessionId, activeConversationId],
+    [sessionId, activeConversationId, messages.length],
   );
+
+  const handleTogglePin = useCallback(() => {
+    const next = !pinnedRef.current;
+    setPinned(next);
+    if (!next && latestArtifact) {
+      setDrawerIndex(latestArtifact.messageIndex);
+      setDrawerTab("result");
+    }
+  }, [latestArtifact, setPinned]);
 
   const showEmptyState = messages.length === 0;
 
@@ -209,7 +228,7 @@ export default function HomePage() {
           tab={drawerTab}
           pinned={drawerPinned}
           onTabChange={setDrawerTab}
-          onTogglePin={() => setDrawerPinned((p) => !p)}
+          onTogglePin={handleTogglePin}
           onDismiss={closeDrawer}
         />
       )}
