@@ -28,6 +28,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Browsers hide non-safelisted response headers from cross-origin JS;
+        # the frontend reads X-Request-ID to link each reply to its trace.
+        expose_headers=["X-Request-ID"],
     )
     application.add_middleware(RequestContextMiddleware)
     register_exception_handlers(application)

@@ -20,6 +20,21 @@ async def test_cors_allows_the_configured_frontend_origin() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cors_exposes_the_request_id_header_to_the_browser() -> None:
+    app.dependency_overrides[check_database_connection] = lambda: True
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get(
+                "/api/health", headers={"Origin": "http://localhost:3000"}
+            )
+        exposed = response.headers.get("access-control-expose-headers", "")
+        assert "x-request-id" in exposed.lower()
+    finally:
+        app.dependency_overrides.pop(check_database_connection, None)
+
+
+@pytest.mark.asyncio
 async def test_cors_preflight_is_allowed_for_configured_origin() -> None:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
