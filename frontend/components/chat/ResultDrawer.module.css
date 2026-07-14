@@ -3,7 +3,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: #1b1510;
+  background: var(--surface);
   border-left: 1px solid var(--seam-strong);
   box-shadow: var(--shadow-drawer);
   padding: 0.9rem;
@@ -21,7 +21,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--pencil-faint);
+  color: var(--pencil);
   cursor: pointer;
   font-family: var(--sans);
   font-size: 0.72rem;
@@ -56,7 +56,7 @@
 }
 
 .pin {
-  color: var(--pencil-faint);
+  color: var(--pencil);
 }
 
 .pinActive {
@@ -64,7 +64,7 @@
 }
 
 .close {
-  color: var(--pencil-faint);
+  color: var(--pencil);
 }
 
 .close:hover,

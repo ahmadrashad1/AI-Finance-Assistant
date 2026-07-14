@@ -50,3 +50,27 @@
 .sage {
   color: var(--sage);
 }
+
+.distribution {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0.4rem 0.5rem 0.2rem;
+}
+
+.segment {
+  display: block;
+}
+
+.segmentSage {
+  background: var(--sage);
+}
+
+.segmentBrass {
+  background: var(--brass);
+}
+
+.segmentEmber {
+  background: var(--ember);
+}

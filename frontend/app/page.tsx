@@ -156,8 +156,11 @@ export default function HomePage() {
             ]);
           } else if (event.type === "done") {
             setActiveConversationId(event.conversation_id);
-            const updated = await listConversations(sessionId);
-            setConversations(updated);
+            try {
+              setConversations(await listConversations(sessionId));
+            } catch {
+              // Sidebar refresh is cosmetic here; never fail a delivered reply over it.
+            }
           } else if (event.type === "error") {
             setError(event.message);
             setMessages((prev) => {
@@ -190,11 +193,11 @@ export default function HomePage() {
   const handleTogglePin = useCallback(() => {
     const next = !pinnedRef.current;
     setPinned(next);
-    if (!next && latestArtifact) {
+    if (!next && latestArtifact && latestArtifact.messageIndex !== drawerIndex) {
       setDrawerIndex(latestArtifact.messageIndex);
       setDrawerTab("result");
     }
-  }, [latestArtifact, setPinned]);
+  }, [latestArtifact, setPinned, drawerIndex]);
 
   const showEmptyState = messages.length === 0;
 

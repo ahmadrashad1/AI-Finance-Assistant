@@ -5,6 +5,10 @@ export interface ResultTableProps {
   table: TableSegment;
 }
 
+function displayText(cell: string): string {
+  return cell.replace(/\*\*/g, "").replace(/`/g, "");
+}
+
 function parseNumeric(cell: string): number | null {
   const cleaned = cell.replace(/[$,\s]/g, "");
   if (cleaned === "" || !/^-?\d+(\.\d+)?$/.test(cleaned)) {
@@ -45,13 +49,24 @@ function cellClass(header: string, cell: string, isNumeric: boolean): string {
 }
 
 export function ResultTable({ table }: ResultTableProps) {
-  const numeric = numericColumns(table);
+  const headerCells = table.headerCells.map(displayText);
+  const bodyRows = table.bodyRows.map((row) => row.map((cell) => displayText(cell ?? "")));
+  const cleanedTable: TableSegment = { ...table, headerCells, bodyRows };
+  const numeric = numericColumns(cleanedTable);
+
+  const bucketCol = headerCells.findIndex((h) => /bucket/i.test(h));
+  const balanceCol = headerCells.findIndex((h) => /balance|total/i.test(h));
+  const totalBalance =
+    bucketCol !== -1 && balanceCol !== -1
+      ? bodyRows.reduce((sum, row) => sum + Math.max(parseNumeric(row[balanceCol] ?? "") ?? 0, 0), 0)
+      : 0;
+
   return (
     <div className={styles.card}>
       <table className={styles.table}>
         <thead>
           <tr>
-            {table.headerCells.map((cell, i) => (
+            {headerCells.map((cell, i) => (
               <th key={i} className={numeric[i] ? `${styles.header} ${styles.numeric}` : styles.header}>
                 {cell}
               </th>
@@ -59,10 +74,10 @@ export function ResultTable({ table }: ResultTableProps) {
           </tr>
         </thead>
         <tbody>
-          {table.bodyRows.map((row, r) => (
+          {bodyRows.map((row, r) => (
             <tr key={r} className={styles.row}>
               {row.map((cell, c) => (
-                <td key={c} className={cellClass(table.headerCells[c] ?? "", cell ?? "", numeric[c] ?? false)}>
+                <td key={c} className={cellClass(headerCells[c] ?? "", cell ?? "", numeric[c] ?? false)}>
                   {cell}
                 </td>
               ))}
@@ -70,6 +85,29 @@ export function ResultTable({ table }: ResultTableProps) {
           ))}
         </tbody>
       </table>
+      {bucketCol !== -1 && balanceCol !== -1 && totalBalance > 0 && (
+        <div className={styles.distribution} aria-hidden="true">
+          {bodyRows.map((row, i) => {
+            const value = parseNumeric(row[balanceCol] ?? "") ?? 0;
+            if (value <= 0) return null;
+            const bucket = (row[bucketCol] ?? "").toLowerCase();
+            const tone =
+              bucket === "current"
+                ? styles.segmentSage
+                : bucket.includes("90+") || bucket.includes("90 +")
+                  ? styles.segmentEmber
+                  : styles.segmentBrass;
+            return (
+              <span
+                key={i}
+                className={`${styles.segment} ${tone}`}
+                style={{ width: `${(value / totalBalance) * 100}%` }}
+                title={`${row[bucketCol]}: ${row[balanceCol]}`}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

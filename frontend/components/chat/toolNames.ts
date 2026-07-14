@@ -14,5 +14,5 @@ const TOOL_PHRASES: Record<string, string> = {
 };
 
 export function toolDisplayName(tool: string): string {
-  return TOOL_PHRASES[tool] ?? "the ledgers";
+  return TOOL_PHRASES[tool] ?? "the records";
 }

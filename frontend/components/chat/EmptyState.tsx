@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 import styles from "./EmptyState.module.css";
 
 export interface EmptyStateProps {
@@ -23,10 +27,15 @@ function greeting(): string {
 }
 
 export function EmptyState({ onPick, disabled }: EmptyStateProps) {
+  const [greetingText, setGreetingText] = useState("The books are open.");
+  useEffect(() => {
+    setGreetingText(greeting());
+  }, []);
+
   return (
     <div className={styles.room}>
       <div className={styles.kicker}>Northwind Manufacturing · Finance</div>
-      <h1 className={styles.greeting}>{greeting()}</h1>
+      <h1 className={styles.greeting}>{greetingText}</h1>
       <div className={styles.chips}>
         {SUGGESTIONS.map((question) => (
           <button
