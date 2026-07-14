@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   getConversationMessages,
@@ -10,9 +10,39 @@ import {
   type ConversationSummary,
 } from "@/lib/api-client";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
+import { EmptyState } from "@/components/chat/EmptyState";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { MessageList, type DisplayMessage } from "@/components/chat/MessageList";
+import {
+  ResultDrawer,
+  type DrawerTab,
+  type ResultArtifact,
+} from "@/components/chat/ResultDrawer";
+import { deriveArtifactTitle, splitMessageContent } from "@/components/chat/markdown";
+import { toolDisplayName } from "@/components/chat/toolNames";
 import styles from "./page.module.css";
+
+function buildArtifacts(messages: DisplayMessage[]): ResultArtifact[] {
+  const artifacts: ResultArtifact[] = [];
+  messages.forEach((message, index) => {
+    if (message.role !== "assistant") {
+      return;
+    }
+    const segments = splitMessageContent(message.content);
+    const tables = segments.filter((s) => s.kind === "table");
+    if (tables.length === 0) {
+      return;
+    }
+    artifacts.push({
+      messageIndex: index,
+      requestId: message.requestId,
+      title: deriveArtifactTitle(segments),
+      tables,
+      rowCount: tables.reduce((sum, t) => sum + t.bodyRows.length, 0),
+    });
+  });
+  return artifacts;
+}
 
 export default function HomePage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -21,6 +51,26 @@ export default function HomePage() {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [thinkingTool, setThinkingTool] = useState<string | null>(null);
+
+  const [drawerIndex, setDrawerIndex] = useState<number | null>(null);
+  const [drawerPinned, setDrawerPinned] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>("result");
+
+  const artifacts = useMemo(() => buildArtifacts(messages), [messages]);
+  const latestArtifact = artifacts.length > 0 ? artifacts[artifacts.length - 1]! : null;
+  const openArtifact =
+    drawerIndex !== null
+      ? (artifacts.find((a) => a.messageIndex === drawerIndex) ?? null)
+      : null;
+
+  // Unpinned drawer follows the newest artifact as it arrives.
+  useEffect(() => {
+    if (!drawerPinned && latestArtifact && !isStreaming) {
+      setDrawerIndex(latestArtifact.messageIndex);
+      setDrawerTab("result");
+    }
+  }, [latestArtifact, drawerPinned, isStreaming]);
 
   useEffect(() => {
     setSessionId(getSessionId());
@@ -37,23 +87,40 @@ export default function HomePage() {
       });
   }, [sessionId]);
 
-  const handleSelectConversation = useCallback((conversationId: string) => {
-    setActiveConversationId(conversationId);
-    setError(null);
-    getConversationMessages(conversationId)
-      .then((history) =>
-        setMessages(history.map((m) => ({ role: m.role, content: m.content }))),
-      )
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not load messages.");
-      });
+  const closeDrawer = useCallback(() => {
+    setDrawerIndex(null);
+    setDrawerPinned(false);
   }, []);
+
+  const handleShowArtifact = useCallback((messageIndex: number) => {
+    // An explicit click wins: open that artifact and clear any pin (spec).
+    setDrawerIndex(messageIndex);
+    setDrawerPinned(false);
+    setDrawerTab("result");
+  }, []);
+
+  const handleSelectConversation = useCallback(
+    (conversationId: string) => {
+      setActiveConversationId(conversationId);
+      setError(null);
+      closeDrawer();
+      getConversationMessages(conversationId)
+        .then((history) =>
+          setMessages(history.map((m) => ({ role: m.role, content: m.content }))),
+        )
+        .catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : "Could not load messages.");
+        });
+    },
+    [closeDrawer],
+  );
 
   const handleNewConversation = useCallback(() => {
     setActiveConversationId(null);
     setMessages([]);
     setError(null);
-  }, []);
+    closeDrawer();
+  }, [closeDrawer]);
 
   const handleSend = useCallback(
     async (message: string) => {
@@ -77,8 +144,9 @@ export default function HomePage() {
               { role: "assistant", content: assistantContent, requestId },
             ]);
           } else if (event.type === "tool_call") {
-            // wired in drawer task
+            setThinkingTool(toolDisplayName(event.tool));
           } else if (event.type === "token") {
+            setThinkingTool(null);
             assistantContent += event.content;
             setMessages((prev) => [
               ...prev.slice(0, -1),
@@ -103,10 +171,13 @@ export default function HomePage() {
         setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       } finally {
         setIsStreaming(false);
+        setThinkingTool(null);
       }
     },
     [sessionId, activeConversationId],
   );
+
+  const showEmptyState = messages.length === 0;
 
   return (
     <main className={styles.workspace}>
@@ -118,12 +189,30 @@ export default function HomePage() {
         disabled={isStreaming}
       />
       <section className={styles.dialogue}>
-        <div className={styles.scroll}>
-          <MessageList messages={messages} thinkingTool={null} onShowArtifact={() => {}} />
-        </div>
+        {showEmptyState ? (
+          <EmptyState onPick={handleSend} disabled={isStreaming || !sessionId} />
+        ) : (
+          <div className={styles.scroll}>
+            <MessageList
+              messages={messages}
+              thinkingTool={thinkingTool}
+              onShowArtifact={handleShowArtifact}
+            />
+          </div>
+        )}
         {error && <p className={styles.errorCard} role="alert">{error}</p>}
         <MessageInput disabled={isStreaming || !sessionId} onSend={handleSend} />
       </section>
+      {openArtifact && (
+        <ResultDrawer
+          artifact={openArtifact}
+          tab={drawerTab}
+          pinned={drawerPinned}
+          onTabChange={setDrawerTab}
+          onTogglePin={() => setDrawerPinned((p) => !p)}
+          onDismiss={closeDrawer}
+        />
+      )}
     </main>
   );
 }

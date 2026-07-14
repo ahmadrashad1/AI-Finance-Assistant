@@ -1,0 +1,54 @@
+.room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.kicker {
+  color: var(--pencil);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.greeting {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  font-weight: 400;
+  margin: 0.9rem 0 0.4rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 1.4rem;
+}
+
+.chip {
+  background: transparent;
+  border: 1px solid var(--seam-strong);
+  border-radius: var(--radius-chip);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  padding: 0.45rem 1rem;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
