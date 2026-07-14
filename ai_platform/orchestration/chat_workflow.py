@@ -46,12 +46,21 @@ class ChatEvent:
 def _build_response_message(message: str, outcomes: list[ToolExecutionOutcome]) -> str:
     if not outcomes:
         return message
+    # Phase 2 sees only the friendly error text; the raw error_message stays
+    # in logs, tool_executions, and traces for developers (CLAUDE.md rule).
     results = [
         {
             "tool": outcome.tool,
             "status": outcome.status,
             "result": cap_result_for_prompt(outcome.result),
-            "error": outcome.error_message,
+            "error": (
+                outcome.user_error_message
+                or (
+                    "This step couldn't be completed because of an internal error."
+                    if outcome.error_message
+                    else None
+                )
+            ),
         }
         for outcome in outcomes
     ]
@@ -157,6 +166,10 @@ class ChatWorkflow(Workflow[ChatRequest, ChatEvent]):
                             status="error",
                             error_message=resolution_error,
                             duration_ms=0,
+                            user_error_message=(
+                                "An earlier step didn't return the information "
+                                "this lookup needed."
+                            ),
                         )
                     )
                     continue

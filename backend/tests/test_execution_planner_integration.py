@@ -130,4 +130,9 @@ async def test_unresolvable_reference_degrades_gracefully_without_aborting_the_p
     payload = json_module.loads(payload_json)
     assert payload[0]["status"] == "error"
     assert payload[1]["status"] == "error"
-    assert "did not succeed" in payload[1]["error"]
+    # Phase 2 receives the friendly resolution-error text, never the raw
+    # $stepN reference internals (CLAUDE.md: users get a friendly message).
+    assert payload[1]["error"] == (
+        "An earlier step didn't return the information this lookup needed."
+    )
+    assert "$step0" not in payload_json

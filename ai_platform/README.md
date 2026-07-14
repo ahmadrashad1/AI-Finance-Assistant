@@ -17,7 +17,14 @@ editable into the backend's virtualenv (see `backend/README.md`).
 - `evaluation/` — the Evaluation-Driven Development (EDD) framework: eval
   case definitions, runs, scoring, and regression tracking.
 - `memory/` — conversation memory management (selective retrieval, not
-  "send the whole transcript").
+  "send the whole transcript"): sessions, conversations, messages, per-turn
+  tool summaries, and request traces.
+- `llm/` — the provider-agnostic `LLMService` protocol and its Groq /
+  Anthropic implementations. Nothing else in the platform knows which
+  provider is configured.
+- `prompts/` — versioned prompt artifacts (planning prompt, system prompt).
+  Every content change bumps `VERSION` and requires an eval-suite re-run
+  before merge; eval cassettes are keyed by the hash of both versions.
 
 A new domain (HR, procurement, sales, ...) should be able to plug into this
 platform by adding tools and services under `domains/`, without changing

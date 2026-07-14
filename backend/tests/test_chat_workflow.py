@@ -7,11 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_platform.memory.conversation_memory import ConversationMemory
 from ai_platform.memory.repository import ConversationRepository
-from ai_platform.orchestration.chat_workflow import ChatRequest, ChatWorkflow
+from ai_platform.orchestration.chat_workflow import (
+    ChatRequest,
+    ChatWorkflow,
+    _build_response_message,
+)
 from ai_platform.orchestration.execution_planner import ExecutionPlanner
 from ai_platform.orchestration.planner import Planner
 from ai_platform.orchestration.prompt_builder import PromptBuilder
-from ai_platform.tool_registry.executor import ToolExecutor
+from ai_platform.tool_registry.executor import ToolExecutionOutcome, ToolExecutor
 from ai_platform.tool_registry.registry import ToolRegistry, ToolSpec
 from ai_platform.tool_registry.repository import ToolExecutionRepository
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
@@ -253,3 +257,33 @@ async def test_large_list_tool_result_is_capped_before_reaching_the_llm(
     assert payload[0]["result"]["items"] == list(range(10))
     assert payload[0]["result"]["_truncated"] is True
     assert payload[0]["result"]["_items_omitted_count"] == 5
+
+
+def test_build_response_message_uses_friendly_error() -> None:
+    outcome = ToolExecutionOutcome(
+        tool="get_customer",
+        parameters={"customer_code": "$step0.customer_code"},
+        result=None,
+        status="error",
+        error_message="Tool 'get_customer' failed: unresolved reference $step0.customer_code",
+        duration_ms=3,
+        user_error_message="Customer not found: Anchor",
+    )
+    message = _build_response_message("Show me Anchor's invoices", [outcome])
+    assert "Customer not found: Anchor" in message
+    assert "$step0" not in message
+    assert "Tool 'get_customer' failed" not in message
+
+
+def test_build_response_message_masks_missing_friendly_error() -> None:
+    outcome = ToolExecutionOutcome(
+        tool="get_customer",
+        parameters={},
+        result=None,
+        status="error",
+        error_message="RuntimeError: connection reset",
+        duration_ms=3,
+    )
+    message = _build_response_message("Show me Anchor's invoices", [outcome])
+    assert "connection reset" not in message
+    assert "couldn't be completed" in message

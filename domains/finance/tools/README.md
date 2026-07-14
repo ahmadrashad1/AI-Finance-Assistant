@@ -1,7 +1,7 @@
 # Finance Tools
 
 One Python function per business capability (e.g. `get_unpaid_invoices()`,
-`get_customer_balance()`, `find_duplicate_invoice()`). Tools:
+`get_customer_balance()`, `find_duplicate_invoices()`). Tools:
 
 - represent exactly one business capability,
 - take explicit, typed parameters,
@@ -55,3 +55,19 @@ it into a later tool call that needs a `customer_id` business code but
 the user only gave a company name (see `ExecutionPlanner`'s parameter
 piping) - e.g. resolving "ABC Industries" before filtering
 `get_overdue_invoices(customer_id=...)` by it.
+
+`get_aging_report` (Milestone 9) buckets unpaid invoices by days overdue
+(current / 0-30 / 31-60 / 61-90 / 90+), sums balances per bucket, and
+returns the buckets plus a grand total (`InvoiceService.get_aging_report`
+over a frozen `AgingReport` dataclass).
+
+`find_duplicate_invoices` (Milestone 9) groups potential duplicates by
+customer + total amount within a 7-day issue window (excluding cancelled
+invoices), optionally filtered to one `invoice_number`, via
+`InvoiceRepository.find_potential_duplicate_groups`.
+
+`search_customers` (Milestone 9) is a case-insensitive fragment search on
+customer names (`CustomerRepository.search_by_name`). It is a separate
+tool rather than a change to `get_customer`'s exact-match contract, so
+existing behavior stays stable and fragment search is opt-in for the
+planner.
