@@ -1,5 +1,7 @@
 import type { ConversationSummary } from "@/lib/api-client";
 
+import styles from "./ConversationSidebar.module.css";
+
 export interface ConversationSidebarProps {
   conversations: ConversationSummary[];
   activeConversationId: string | null;
@@ -16,31 +18,28 @@ export function ConversationSidebar({
   disabled,
 }: ConversationSidebarProps) {
   return (
-    <aside style={{ width: "220px", borderRight: "1px solid #ccc", padding: "0.5rem" }}>
-      <button
-        onClick={onNewConversation}
-        disabled={disabled}
-        style={{ width: "100%", marginBottom: "0.5rem" }}
-      >
-        + New conversation
-      </button>
-      <ul style={{ listStyle: "none", padding: 0 }}>
+    <aside className={styles.rail}>
+      <div className={styles.brand}>
+        <span className={styles.lamp} aria-hidden="true">✦</span> Atelier
+      </div>
+      <ul className={styles.list}>
         {conversations.map((conversation) => (
           <li key={conversation.id}>
             <button
               onClick={() => onSelect(conversation.id)}
               disabled={disabled}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                fontWeight: conversation.id === activeConversationId ? "bold" : "normal",
-              }}
+              className={
+                conversation.id === activeConversationId ? styles.itemActive : styles.item
+              }
             >
               {conversation.title ?? "New conversation"}
             </button>
           </li>
         ))}
       </ul>
+      <button onClick={onNewConversation} disabled={disabled} className={styles.newButton}>
+        + New conversation
+      </button>
     </aside>
   );
 }

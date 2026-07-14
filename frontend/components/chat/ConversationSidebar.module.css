@@ -1,0 +1,82 @@
+.rail {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--seam);
+  background: var(--room);
+  padding: 1rem 0.75rem;
+}
+
+.brand {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--pencil);
+  padding: 0 0.5rem 1rem;
+}
+
+.lamp {
+  color: var(--brass);
+}
+
+.list {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.item,
+.itemActive {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--pencil);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.item:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+.itemActive {
+  background: var(--surface-raised);
+  color: var(--ink-soft);
+}
+
+.item:disabled,
+.itemActive:disabled,
+.newButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.newButton {
+  background: transparent;
+  border: 1px solid var(--seam-strong);
+  border-radius: var(--radius-chip);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.75rem;
+  margin-top: 0.75rem;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.newButton:hover:not(:disabled) {
+  border-color: var(--brass);
+  color: var(--brass);
+}

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import styles from "./MessageInput.module.css";
+
 export interface MessageInputProps {
   disabled: boolean;
   onSend: (message: string) => void;
@@ -21,17 +23,17 @@ export function MessageInput({ disabled, onSend }: MessageInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className={styles.form}>
       <input
         type="text"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Ask about your finances..."
+        placeholder="Ask the books anything…"
         disabled={disabled}
-        style={{ width: "80%" }}
+        className={styles.input}
       />
-      <button type="submit" disabled={disabled}>
-        Send
+      <button type="submit" disabled={disabled} className={styles.send} aria-label="Send">
+        ↵
       </button>
     </form>
   );
