@@ -1,0 +1,56 @@
+.error {
+  color: var(--ember);
+  font-size: 0.85rem;
+}
+
+.loading {
+  color: var(--pencil);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius-card);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.75rem;
+}
+
+.line {
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+}
+
+.line strong {
+  color: var(--pencil);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 0.35rem;
+}
+
+.traceTable {
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.traceTable th {
+  color: var(--pencil);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem 0.2rem 0;
+}
+
+.traceTable td {
+  color: var(--ink);
+  padding: 0.2rem 0.5rem 0.2rem 0;
+}

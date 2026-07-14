@@ -1,0 +1,52 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+  padding: 0.4rem;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.82rem;
+}
+
+.header {
+  color: var(--pencil);
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+}
+
+.row {
+  border-top: 1px solid var(--seam);
+}
+
+.cell {
+  color: var(--ink);
+  font-family: var(--sans);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.numeric {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ember {
+  color: var(--ember);
+}
+
+.sage {
+  color: var(--sage);
+}
