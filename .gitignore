@@ -35,3 +35,6 @@ Thumbs.db
 
 # Playwright MCP tool artifacts (snapshots/screenshots from ad-hoc verification)
 .playwright-mcp/
+
+# Superpowers brainstorming sessions (visual companion mockups)
+.superpowers/
