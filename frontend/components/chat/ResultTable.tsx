@@ -56,9 +56,16 @@ export function ResultTable({ table }: ResultTableProps) {
 
   const bucketCol = headerCells.findIndex((h) => /bucket/i.test(h));
   const balanceCol = headerCells.findIndex((h) => /balance|total/i.test(h));
+  // A model-appended "Total"/"Grand Total" row would double the sum and
+  // halve every real bucket's segment — exclude it from the bar entirely.
+  const isTotalRow = (row: string[]): boolean => /total/i.test(row[bucketCol] ?? "");
   const totalBalance =
     bucketCol !== -1 && balanceCol !== -1
-      ? bodyRows.reduce((sum, row) => sum + Math.max(parseNumeric(row[balanceCol] ?? "") ?? 0, 0), 0)
+      ? bodyRows.reduce(
+          (sum, row) =>
+            isTotalRow(row) ? sum : sum + Math.max(parseNumeric(row[balanceCol] ?? "") ?? 0, 0),
+          0,
+        )
       : 0;
 
   return (
@@ -88,11 +95,12 @@ export function ResultTable({ table }: ResultTableProps) {
       {bucketCol !== -1 && balanceCol !== -1 && totalBalance > 0 && (
         <div className={styles.distribution} aria-hidden="true">
           {bodyRows.map((row, i) => {
+            if (isTotalRow(row)) return null;
             const value = parseNumeric(row[balanceCol] ?? "") ?? 0;
             if (value <= 0) return null;
             const bucket = (row[bucketCol] ?? "").toLowerCase();
             const tone =
-              bucket === "current"
+              bucket.startsWith("current")
                 ? styles.segmentSage
                 : bucket.includes("90+") || bucket.includes("90 +")
                   ? styles.segmentEmber
