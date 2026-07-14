@@ -39,6 +39,59 @@ the Milestone 10 plan (Task 2 steps 1–7).
 **Net result:** one genuine violation (row 1, pre-known, fixed in Task 3); two documented
 judgment calls (rows 2, 8); everything else clean.
 
+## FR-13 dataset counts (Task 7 input, seed=42, verified via psql 2026-07-14)
+
+| Entity | Seeded | FR-13 minimum | Met? |
+|---|---|---|---|
+| customers | 25 | 500 | ❌ |
+| vendors | 15 | 150 | ❌ |
+| invoices | 205 (+33 vendor invoices) | 10,000 | ❌ |
+| purchase_orders | 40 | 3,000 | ❌ |
+| payments | 141 (+23 vendor payments) | 2,500 | ❌ |
+| expense_claims | 60 | 500 | ❌ |
+| employees / products | 20 / 15 | — | — |
+
+The seed CLI has no size/profile option (`--reset`, `--seed` only) — the PRD Ch.11
+"small/medium/large" generator profiles are unimplemented. The compact dataset is
+internally consistent (0 violations) and every eval case is authored against it, but
+FR-13's minimum counts are not met. Known limitation for MVP-REPORT §5.
+
+## Demo evidence salvaged so far (Task 4, in progress — blocked on Groq daily budget)
+
+Live turns completed 2026-07-14 before the daily 500k-token budget exhausted
+(instant 429s on every request thereafter; per HANDOFF §6 rate-limited output is
+never treated as model behavior). All SQL cross-checks passed **exactly**:
+
+1. **"Show unpaid invoices."** → planned `get_overdue_invoices()`; reply table's rows
+   (INV-7051 $21,060, INV-7014 $6,534, INV-7154 $72,063, ...), count 80, and total
+   $2,506,110.30 all match `finance.invoices WHERE status='overdue'` exactly.
+   Full transcript + trace JSON captured. (Note: rolled get_overdue_invoices rather
+   than get_unpaid_invoices this roll — nondeterminism; the eval suite's
+   unpaid_invoices category, 5/5 recorded, is the paraphrase-invariance proof.)
+2. **"Which customers haven't paid us?"** → planned `get_unpaid_invoices()`
+   (trace recovered from request_traces; Phase 2 lost to 429).
+3. **"Show invoices overdue by more than 60 days"** → planned
+   `get_overdue_invoices(minimum_days=61)` — correct tool + correct exclusive-bound
+   parameter (trace recovered from request_traces; Phase 2 lost to 429).
+4. **"Show me invoices for Anchor Components"** → planned `get_customer("Anchor
+   Components")` then `search_invoices(customer_id=$step0.customer_code)` — two-step
+   chain executed (CUST-0003), reply's 8 invoices / $274,617.00 total match SQL
+   exactly, row-for-row. Full transcript + trace JSON captured.
+5. **Friendly-error live check** (Task 3): honest "Customer not found: Anchor" reply
+   with zero internals.
+
+Zero hallucinated values across every captured turn.
+
+Remaining turns needed for docs/DEMO.md (multi-turn follow-ups, aging report,
+duplicates, cash position, INV-99999 honesty, $10M empty-result honesty,
+fragment-name gap, aging explanation, out-of-scope refusal): **blocked until the
+Groq daily window refills or a secondary key is provided** (same blocker and same
+resolution path as Milestone 9's recording session).
+
+## Latest evaluation run (evaluation.evaluation_runs, authoritative scorecard)
+
+`core | recorded | 53 total | 39 passed | overall_score 0.7358 | prompts 1.4.0/1.5.0 | 2026-07-14 07:44 UTC`
+
 ## Friendly-error fix verification (Task 3)
 
 - TDD: 3 new executor tests + 2 new `_build_response_message` tests, failing-first, now
