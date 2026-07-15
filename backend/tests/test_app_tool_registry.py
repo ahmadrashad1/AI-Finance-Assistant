@@ -26,4 +26,8 @@ def test_registry_includes_all_registered_tools() -> None:
         "get_expense_policy_violations",
         "get_expense_summary_by_department",
         "find_duplicate_expense_claims",
+        "get_customer_payment_behavior",
+        "get_credit_exposure",
+        "list_customers_over_credit_limit",
+        "assess_credit_risk",
     }
