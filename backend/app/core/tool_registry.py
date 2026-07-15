@@ -5,12 +5,19 @@ from functools import lru_cache
 from ai_platform.tool_registry.registry import ToolRegistry
 from ai_platform.tool_registry.tools.get_current_date import GET_CURRENT_DATE_TOOL
 from ai_platform.tool_registry.tools.resolve_date_range import RESOLVE_DATE_RANGE_TOOL
+from domains.finance.tools.find_duplicate_expense_claims import FIND_DUPLICATE_EXPENSE_CLAIMS_TOOL
 from domains.finance.tools.find_duplicate_invoices import FIND_DUPLICATE_INVOICES_TOOL
 from domains.finance.tools.get_aging_report import GET_AGING_REPORT_TOOL
 from domains.finance.tools.get_cash_position import GET_CASH_POSITION_TOOL
 from domains.finance.tools.get_customer import GET_CUSTOMER_TOOL
 from domains.finance.tools.get_customer_balance import GET_CUSTOMER_BALANCE_TOOL
+from domains.finance.tools.get_expense_claims import GET_EXPENSE_CLAIMS_TOOL
+from domains.finance.tools.get_expense_policy_violations import GET_EXPENSE_POLICY_VIOLATIONS_TOOL
+from domains.finance.tools.get_expense_summary_by_department import (
+    GET_EXPENSE_SUMMARY_BY_DEPARTMENT_TOOL,
+)
 from domains.finance.tools.get_overdue_invoices import GET_OVERDUE_INVOICES_TOOL
+from domains.finance.tools.get_pending_expense_approvals import GET_PENDING_EXPENSE_APPROVALS_TOOL
 from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
 from domains.finance.tools.get_vendor_balance import GET_VENDOR_BALANCE_TOOL
 from domains.finance.tools.get_vendor_invoices import GET_VENDOR_INVOICES_TOOL
@@ -34,4 +41,9 @@ def get_tool_registry() -> ToolRegistry:
     registry.register(GET_AGING_REPORT_TOOL)
     registry.register(FIND_DUPLICATE_INVOICES_TOOL)
     registry.register(SEARCH_CUSTOMERS_TOOL)
+    registry.register(GET_EXPENSE_CLAIMS_TOOL)
+    registry.register(GET_PENDING_EXPENSE_APPROVALS_TOOL)
+    registry.register(GET_EXPENSE_POLICY_VIOLATIONS_TOOL)
+    registry.register(GET_EXPENSE_SUMMARY_BY_DEPARTMENT_TOOL)
+    registry.register(FIND_DUPLICATE_EXPENSE_CLAIMS_TOOL)
     return registry

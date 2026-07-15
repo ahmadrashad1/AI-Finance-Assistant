@@ -21,4 +21,9 @@ def test_registry_includes_all_registered_tools() -> None:
         "get_aging_report",
         "find_duplicate_invoices",
         "search_customers",
+        "get_expense_claims",
+        "get_pending_expense_approvals",
+        "get_expense_policy_violations",
+        "get_expense_summary_by_department",
+        "find_duplicate_expense_claims",
     }
