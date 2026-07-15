@@ -41,7 +41,9 @@ RESOLVE_DATE_RANGE_TOOL = ToolSpec(
         "any business data itself - it only does date arithmetic. If the "
         "expression can't be resolved, it fails with an error explaining "
         "which forms are supported; ask the user for an explicit range "
-        "in that case."
+        "in that case. For a simple 'what's today's date?' question, use "
+        "get_current_date instead - it returns today's date directly without "
+        "computing a range."
     ),
     parameters_model=ResolveDateRangeParams,
     result_model=ResolveDateRangeResult,
