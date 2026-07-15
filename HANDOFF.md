@@ -1,69 +1,77 @@
-# HANDOFF — AI Finance Assistant MVP
-Last updated: 2026-07-14 | Current milestone: 10 — MVP Completion Audit | Status: **complete — MVP done**
+# HANDOFF — AI Finance Assistant
+
+Last updated: 2026-07-15 | Current milestone: 11 — Simulator v2 & Schema Foundation | Status: **complete**
 
 ## 1. Current State
 
-Verified working right now — on a database rebuilt **from zero** this session
-(`docker compose down -v` → up → migrate → seed), not a carried-over volume:
+Verified working right now, on branch `milestone-11-simulator-v2` (branched off `master` @ Milestone 10; the `atelier-frontend-redesign`/`full-stack-docker` branches are separate lineage and are **not** in this branch's history — reconcile at merge time):
 
-- `docker compose ps` — Postgres 16 healthy on `0.0.0.0:5432` (fresh volume, 8s to healthy).
-- `alembic upgrade head` from an empty database → all migrations apply cleanly; `python -m domains.finance.simulator.seed` → `Seeded Northwind Manufacturing Ltd. (seed=42).` (migrate+seed: 3s).
-- Backend tests: `cd backend && .venv/Scripts/python -m pytest -q` → **445 passed**, ~112s (440 at milestone start — Milestone 9's HANDOFF said 439 but its final commit added the CORS test after the count was written; +5 new friendly-error tests this milestone).
-- Lint/types: ruff `All checks passed!`; mypy strict `Success: no issues found in 106 source files`.
-- Frontend: lint, typecheck, build all clean.
-- Consistency: `Consistency check passed: 0 violations.`
-- Eval suite: `python -m ai_platform.evaluation.run --suite core` → **39/53, tool-selection 76.7%, parameters 94.4%, hallucination 0.0%, no STALE** — identical before and after every change this milestone (the friendly-error fix cannot stale cassettes: they key on `case_id+turn+prompt-version hash`).
-- **Live acceptance turn on the fresh DB**: *"Which customers haven't paid us?"* → planned `get_unpaid_invoices`, executed in 12ms, total 1445ms, correct table; trace API confirmed branch/versions/timing. Frontend served HTTP 200 on :3000.
-- Git: all Milestone 10 work on branch **`milestone-10-mvp-completion-audit`** (10 commits), ready for merge review. Working tree clean except pre-existing local items (`.claude/settings.json`, user's `docs/execution-prompt.md`).
+- `docker exec ai-financeassistant-postgres-1 pg_isready` → accepting connections (container started via `docker start`, not a fresh volume this session).
+- `alembic upgrade head` → three new migrations apply cleanly on top of Milestone 10's schema (`a1c2e3f40011`, `b2d3e4f50022`, `c3e4f5a60033`); downgrade-then-upgrade round-trip verified.
+- `python -m domains.finance.simulator.seed --reset` → seeds the full v1+v2 company; `python -m domains.finance.simulator.check` → **`Consistency check passed: 0 violations.`**
+- Backend tests: `cd backend && .venv/Scripts/python -m pytest -q` → **474 passed** (445 at Milestone 10 + 29 new: simulation-date (4), seed-v2-scale (4), consistency-check-v2 (8), v2-repositories (10), evaluation-baseline (5) minus 2 consolidated).
+- Lint/types: ruff `All checks passed!`; mypy `Success: no issues found in 118 source files`.
+- **Determinism**: reseeded twice with seed 42 via the CLI — `expectations.json` byte-identical across the two runs (diffed); `test_seed_repeatability.py` additionally diffs full snapshots (entity counts, per-customer invoiced totals, per-department budget totals, per-period payroll nets, per-account bank-transaction sums) and the expectations dict itself.
+- **Eval baseline preserved**: `python -m ai_platform.evaluation.run --suite core --mode recorded` on the freshly v1+v2-seeded DB → **39/53 passed, tool-selection 76.7%, parameter accuracy 94.4%, memory usage 0.0%, hallucination 0.0%** — **identical** to the pre-milestone baseline recorded below. Spot-checked the cassette-anchored figure directly: `Anchor Components` outstanding balance is still exactly `188446.50` after the v2 phase runs (the v1 RNG stream and its 200 invoices are untouched).
+- **CI evaluation gate fixed**: `master`'s CI ran the `evaluation` job against an **unseeded** database (migrations applied, seeder never called), scoring 38/53 instead of 39/53 — a measurement bug that predates Milestone 11, not a regression this session introduced. Fixed: the workflow now seeds before evaluating, and the job gates on a committed baseline (`evals/baseline_core.json`, generated this session from the freshly v1+v2-seeded DB) via a new `--baseline PATH` flag on `ai_platform.evaluation.run` — exit 0 iff every case's pass/fail is identical to the baseline. This is the correct gate for "behavior unchanged": the old `--suite core` invocation without `--baseline` always exits 1 once any of the 14 documented findings exist, so it could never be green; the baseline comparator turns "assistant behavior didn't change" into an actual pass/fail CI signal. Verified locally: `--baseline ../evals/baseline_core.json` → `Matches baseline ... - no drift.`
 
-## 2. Work Completed This Session (Milestone 10 — the five audit items)
+## 2. Baseline (recorded before any change this session, for comparison)
 
-1. **Full verification run** (item 1): clean-slate baseline re-proven, then re-proven again at the end on a from-zero database. No regressions; the 14 eval failures match Milestone 9's documented findings exactly.
-2. **PRD success criteria demos → `docs/DEMO.md`** (item 2): five scripted conversations via the new `backend/scripts/run_demo.py` (drives `POST /api/chat` SSE + `GET /api/trace/{request_id}` per turn; paces turns and retries on provider-busy). All five criteria demonstrated live; **every factual claim SQL-cross-checked and exact** (aging buckets cell-for-cell, duplicates group-for-group, cash $918,201.30, Anchor balance $188,446.50, unpaid 87/$2,650,349.70). Known gaps shown honestly in the document (fragment names, cross-turn step piping, two one-off Phase-2 numeric prose garbles).
-3. **Architecture audit** (item 3): grep sweep + endpoint review + prompt-history audit. One genuine violation — the pre-known HANDOFF-§5 raw-error leak — **fixed with TDD**: `ToolExecutionOutcome.user_error_message` (business `ValueError`s pass through, e.g. "Customer not found: Anchor"; Pydantic dumps/`$stepN` references/unexpected exceptions masked with categorized friendly text); Phase 2 and users never see internals, developers keep full detail in logs/`tool_executions`/traces. Verified live. Two judgment calls documented (simulator CLI SQL; platform→app shared-infra imports). Everything else clean — full table in `docs/MVP-REPORT.md` §4.
-4. **Documentation** (item 4): root README rewritten (real layout with `ai_platform/`, ~10-minute quickstart validated this session, demo/tests/eval commands, MVP-complete status); all component READMEs refreshed to Milestone-9 reality; new `ai_platform/llm/README.md` and `ai_platform/prompts/README.md`; **ADRs 0005–0007** added (cassette record/replay evaluation, out-of-scope refusal as plan branch, request-traces table).
-5. **`docs/MVP-REPORT.md`** (item 5): scorecard vs PRD targets stated plainly (hallucination 0.0% met; tool-selection 76.7% vs >95% not met — attributed to the 8B planner with an evaluated migration path; parameters 94.4% borderline), the 14 failures by pattern, FR-9/FR-13 gaps, carried code-level items, and an 8-point prioritized post-MVP list.
+| Check | Result |
+|---|---|
+| pytest (backend) | 445 passed |
+| ruff / mypy | clean / clean (95 files) |
+| seed --reset + consistency_check (v1 only) | 0 violations |
+| eval `core` recorded, seeded DB | **39/53**; tool-sel 76.7%; params 94.4%; memory 0.0%; halluc 0.0% |
 
-## 3. In-Progress Work
+The post-milestone numbers in §1 match this baseline exactly on every eval metric, confirming the milestone's core acceptance criterion: **the assistant's behavior is unchanged.**
 
-**Nothing is mid-implementation.** The milestone plan
-(`docs/superpowers/plans/2026-07-14-milestone-10-mvp-completion-audit.md`)
-is fully executed. The branch awaits merge review.
+## 3. Work Completed This Session (Milestone 11)
 
-## 4. Decisions Made
+Plan: `docs/superpowers/plans/2026-07-15-milestone-11-simulator-v2-schema-foundation.md`. PRD Chapters 18–20 (Domain Expansion Strategy, Finance Simulation Environment v2, Database Design Extensions) read and implemented; this milestone is deliberately AI-free — no tools, no prompts, no planner changes.
 
-- **Friendly errors are a code-level contract, not a prompt change**: the fix lives in the executor/workflow (`user_error_message`), so no prompt bump, no cassette re-record. Recorded Phase-2 responses for error-path cases predate the fix — live behavior is friendlier than those recordings; re-record folds into the next prompt bump.
-- **Business `ValueError`s pass through to users verbatim** — services already phrase them user-appropriately ("Customer not found: X"). Everything else is masked by category.
-- **The 14 eval failures stay failing** and are shipped as documented findings in MVP-REPORT (never-loosen-expectations rule).
-- **Demo transcripts are honest, with one re-roll allowed per demo** (planner samples at default temperature): re-rolls that expose documented gaps are kept and labeled, not discarded; first-roll numeric garbles are documented in DEMO.md and MVP-REPORT even though the re-roll was clean.
-- **FR-9 (PO matching) and FR-13 (dataset minimums) are documented gaps, not silent fixes** — building them mid-audit would violate the milestone's scope and the prompt-bump budget.
-- **A secondary Groq key (user-supplied) finished the demo runs** after the primary account's daily budget exhausted — env-var override only, never written to `.env`, never committed; the override server was stopped afterwards.
+1. **Single configurable simulation clock** (`ai_platform/simulation_clock.py`, re-exported via `domains/finance/simulation.py`): `simulation_today()` reads env `SIMULATION_TODAY` (ISO date), defaults to the existing anchor `2026-07-08`. Replaced every `date.today()` in business logic (`InvoiceService`, `VendorService`, `PaymentRepository`, `VendorPaymentRepository`, `get_current_date` tool). ADR: `docs/adr/0008-simulation-clock.md`.
+2. **Schema (3 Alembic migrations, all round-trip tested)**:
+   - `a1c2e3f40011` — extends `expense_claims` (department_id, expense_date, currency, receipt_attached, approver_id, approved_date, policy_violations JSONB) and `employees` (grade, salary, hire_date, termination_date, manager_id), plus indexes.
+   - `b2d3e4f50022` — creates `purchase_requisitions`, `requisition_items`, `budgets`, `fixed_assets`, `payroll_runs`, `payroll_lines`, `bank_transactions`, `close_periods`, `close_tasks`, `tax_rates`, `tax_periods`; extends `bank_accounts` (bank_name, account_number_masked, currency), `purchase_orders` (renamed `approved_by`→`approved_by_employee_id`; added `requisition_id`, `created_by_employee_id`), and adds `created_by_employee_id`/`approved_by_employee_id` to `invoices`, `payments`, `vendor_payments`.
+   - `c3e4f5a60033` — company policy tables: `expense_limit_policies`, `approval_threshold_policies`, `expense_submission_policies`, `depreciation_policies`. Policies are data, never prompt text.
+3. **Seed generator v2** (`domains/finance/simulator/generator_v2.py`, `SimulatorSeederV2`): a second phase run after the frozen v1 `SimulatorSeeder`, on a **separate RNG stream** (`random.Random(f"{seed}:v2")`) so v1's exact data (and every recorded eval cassette) is untouched. Generates: 2 new departments (7 total), 25 new employees (45 total, with grades/salaries/hire-termination dates), 48+3 fixed assets, ~62 requisitions + PO metadata, 280 new expense claims (340 total) with policy_violations recomputed and stored, an 8-invoice deteriorating customer (CUST-0026, the one addition visible to existing tools — verified not to move eval scores), 18 monthly payroll runs, 6 quarterly tax periods + rates, 3 bank accounts + ~600-900 bank-statement lines (customer receipts, vendor payments, payroll, reimbursements, fees, interest, transfers, tax remittances, deliberately unmatched lines), department/category/month budget lines with actuals always computed from real transactions (never stored), and 18 monthly close periods with task checklists.
+4. **Planted anomalies** (all 12 required, plus the pre-existing duplicate invoices — 13 total), every one recorded with business identifiers (never UUIDs) in `domains/finance/simulator/expectations.json`, emitted at seed time.
+5. **Consistency check v2** (`domains/finance/simulator/consistency_check.py`): asserts all 9 pre-existing invariants plus 24 new ones spanning employees, expense-claim policy recomputation, bank-transaction matching (both reconciliation directions), payroll totals/coverage, budget variance, fixed-asset depreciation, requisition/PO traceability, price variance, segregation-of-duties metadata, the deteriorating customer's lateness trend, financial close, and tax filing. Every planted anomaly is checked for exact equality against the expectations file — drift is itself a violation. New CLI: `python -m domains.finance.simulator.check`.
+6. **Read-only repositories**, one per new entity group (`budget_repository.py`, `bank_transaction_repository.py`, `fixed_asset_repository.py`, `payroll_repository.py`, `purchase_requisition_repository.py`, `close_period_repository.py`, `tax_repository.py`, `company_policy_repository.py`, `employee_repository.py`, `expense_claim_repository.py`) — data access only, no business rules, no computed depreciation/variance math (that's Milestone 12+).
+7. **Tests**: `test_simulation_date.py` (4), `test_seed_v2_scale.py` (4, incl. PRD Ch.19 scale ranges and expectations-key coverage), `test_seed_repeatability.py` (extended with v2 aggregates), `test_consistency_check.py` (8 violation-injection cases), `test_v2_repositories.py` (10), `test_evaluation_baseline.py` (5, the CI gate comparator). Three pre-existing tests updated for the new reality (`test_seed_cli.py`'s customer count 25→26; two `test_consistency_check_ap_cash.py` tests now seed the full v1+v2 company since the checker validates a complete company, not isolated fixtures).
+8. **CI evaluation gate fix**: `run_suite` now returns per-case pass/fail alongside the report; `ai_platform.evaluation.run` gained `--write-baseline PATH` and `--baseline PATH`; `.github/workflows/ci.yml`'s `evaluation` job seeds the simulator before running eval and gates on `evals/baseline_core.json`. See §1 and the Rationale below.
 
-## 5. Known Issues / Failing Tests
+## 4. In-Progress Work
 
-- **No test/lint/type failures.** 445 backend tests pass; ruff/mypy clean; frontend clean.
-- **The 14 documented eval failures (39/53)** — unchanged from Milestone 9, full pattern breakdown in `docs/MVP-REPORT.md` §5: fragment-name → `search_customers` under-routing (5), `get_customer` chaining (3), AR-vs-AP confusion (1), refusal under-trigger (2), parameter-format flake (1), unrequested prefix call (1), `ambiguous_show_invoices` (1).
-- **Phase-2 numeric prose flakes** (new, observed live once each, documented in DEMO.md §3): a garbled total and an invented count in free prose above/below correct structured tables. Structured figures quoted from tool summaries were reliable in every observation.
-- **Cross-turn `$stepN` references** (documented): the planner sometimes pipes from a previous turn's plan; resolves to a friendly resolution-error and an honest reply.
-- **Planner nondeterminism unmitigated** (no temperature set) — §7.1 remains the highest-leverage fix.
-- **Carried code-level items from Milestones 4–8** — unchanged, listed in MVP-REPORT §5.
+Nothing mid-implementation. Milestone 11 plan fully executed; branch not yet pushed (user hasn't asked).
 
-## 6. Do NOT Do
+## 5. Decisions Made
 
-- **Don't run pytest (or anything using `clean_db`) between reseeding and anything that reads seeded data** (demos, recording, manual verification) — it truncates the finance tables.
-- **Don't run two recording/demo processes concurrently; don't assume a killed background shell killed its children** — verify with `tasklist | findstr python` (this session: a killed `npm run dev` left a node child holding :3000 — kill by PID from `netstat -ano`, never kill all node.exe, the user's editor runs node too).
-- **Don't treat rate-limited output as model behavior** — Groq free tier is ~6k tokens/min *and* 500k/day (sliding); each chat turn costs ~5–9k tokens. `scripts/run_demo.py` paces turns (default 60s) and retries once on busy; a full demo run needs ~150k tokens of daily headroom.
-- **Don't loosen eval expectations; don't bump prompt `VERSION`s casually** (full re-record ≈ a Groq free-tier day); **keep eval case ids ≤44 chars**; **don't hand-script cassettes** — all carried forward, all still true.
-- **Don't commit API keys** — the secondary-key pattern is env-var override only.
-- **Don't push to `origin` without being asked.** Don't assume Docker Desktop is running.
+- **v1 and v2 are separate RNG streams, sequential phases** — the only way to guarantee v1's exact data (and every recorded eval cassette) survives a "full-company" expansion untouched. Verified: the Anchor Components balance used by cassette `explanation_quality_customer_balance` is byte-identical after the v2 phase.
+- **The deteriorating customer (CUST-0026) is the one deliberate addition visible to existing tools** — everything else v2 adds is invisible to the current toolset (no tool queries budgets/payroll/assets/etc. yet). Its addition was verified not to move any eval score.
+- **`get_current_date` now returns the simulation date, not the wall clock** — required for internal consistency (the assistant's "today" must match the data's "today"); verified eval-neutral.
+- **`purchase_orders.approved_by` renamed to `approved_by_employee_id`** to match the new segregation-of-duties naming convention used on invoices/payments/vendor_payments/purchase_requisitions. No tool exposed the old name; three call sites fixed (repository, generator, consistency check) plus one test assertion.
+- **Consistency check v2 validates a *complete* seeded company, not arbitrary partial fixtures** — two legacy tests in `test_consistency_check_ap_cash.py` that built minimal ad hoc data (no payroll/close/tax) now seed the full v1+v2 pipeline first, since invariants like "18 payroll runs must exist" are unconditional. This is a deliberate consequence of the milestone's design (assert every invariant against a real company), not a weakened test.
+- **Budgets, tax positions, and depreciation are never stored as computed results** — only budgeted amounts, tax rates/periods, and asset purchase/life data are seeded; actuals/positions/net-book-value are left for Milestone 12+ services to compute from the simulation date, per CLAUDE.md and PRD Ch.19/20.
 
-## 7. Next Steps (prioritized — same list as MVP-REPORT §6)
+## 6. Known Issues / Deferred Items
 
-1. **Planning temperature ≈0** in `GroqLLMService` + one-time full re-record — the single highest-leverage quality fix.
-2. **Prompt-harden fragment-name routing and refusal triggering** (planning-prompt 1.5.0 candidates; each requires the re-record + re-run).
-3. **Evaluated provider/model migration** (Groq 70B / Claude Haiku / Claude Sonnet ladder) to close the tool-selection gap toward NFR-5's >95%.
-4. **Domain Adapters (PRD Ch.10)** for real ERP integration.
-5. **FR-9 PO matching, `search_vendors`, simulator size profiles (FR-13).**
-6. **HR/Procurement domains + per-domain tool registries.**
-7. **Extract shared infra out of `backend/app`** (audit §4.7 debt) so the platform no longer imports from the app.
-8. **Parallel tool execution** + carried code-level items.
+- **No test/lint/type failures** on this branch: 474 backend tests, ruff/mypy clean.
+- All Milestone-10-era known issues (14 documented eval failures, planner nondeterminism, FR-9/FR-13 gaps) are unchanged and still current — see `docs/MVP-REPORT.md` §5/§6.
+
+## 7. Do NOT Do
+
+- **Don't run pytest (or anything using `clean_db`) between reseeding and anything reading seeded data** (consistency check, manual verification, eval) — `clean_db` truncates every finance table including the new v2 ones.
+- **Don't hardcode expected anomaly values into eval cases or tests** — always read them from `domains/finance/simulator/expectations.json` (or the in-process dict `SimulatorSeederV2.seed()` returns), per PRD Ch.19.
+- **Don't add tools, prompt changes, or planner changes claiming they're part of "Milestone 11 work"** — this milestone is deliberately AI-free; Milestone 12 (Phase A domains) is where tools get built against this schema.
+- **Don't change `domains/finance/simulator/constants.py`'s v1 constants or `data.py`'s v1 name pools** — the v1 RNG stream depends on their exact values; changing them would silently re-shuffle every v1-seeded record and stale every eval cassette without bumping a prompt version (no version-based staleness guard exists for simulator data, unlike prompts).
+- **Don't run two dev servers and the docker stack at once** — unchanged from Milestone-10-era guidance.
+- All Milestone-10 rules still stand (rate-limited output isn't model behavior, don't bump prompt VERSIONs casually, keep eval case ids ≤44 chars, don't push without being asked).
+
+## 8. Next Steps (prioritized)
+
+1. **Milestone 12 — Phase A domains** (Expense Management, Credit Management, Cash Flow Forecasting; PRD Ch.21): no new schema needed, build tools/services against the entities this milestone created.
+2. **Reconcile branch lineage**: `milestone-11-simulator-v2` branches off `master` (Milestone 10), not off `atelier-frontend-redesign`/`full-stack-docker` — decide merge order before those branches' PRs land, since both touch `HANDOFF.md` and this branch touches the schema those branches' Docker image bakes in at build time (a fresh `alembic upgrade head` inside the container will pick up these migrations automatically; no Docker-specific changes needed).
+3. **Post-MVP priorities from `docs/MVP-REPORT.md` §6** remain the backend roadmap beyond the domain expansion: planning temperature ≈0 + re-record, prompt-hardening fragment-name/refusal gaps, evaluated model migration.
+4. **Re-record `evals/baseline_core.json`** whenever a prompt version bump forces a cassette re-record (the baseline is a snapshot of pass/fail, not the cassettes themselves — it goes stale exactly when the cassettes do, and must be regenerated with `--write-baseline` in the same commit as the re-record).
