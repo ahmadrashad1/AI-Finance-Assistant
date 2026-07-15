@@ -16,3 +16,15 @@ def simulation_today() -> date:
     """Return the configured simulation date (env ``SIMULATION_TODAY``, ISO format)."""
     raw = os.environ.get(_ENV_VAR)
     return date.fromisoformat(raw) if raw else DEFAULT_SIMULATION_TODAY
+
+
+def full_months_between(start: date, end: date) -> int:
+    """Whole calendar months elapsed from ``start`` to ``end``.
+
+    The canonical month arithmetic for depreciation: the seeder and the
+    consistency check must agree on what "fully depreciated" means.
+    """
+    months = (end.year - start.year) * 12 + (end.month - start.month)
+    if end.day < start.day:
+        months -= 1
+    return max(months, 0)

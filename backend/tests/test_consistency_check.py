@@ -8,23 +8,161 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domains.finance.models.expenses import ExpenseClaimModel
+from sqlalchemy import select
+
+from domains.finance.models import (
+    BankTransactionModel,
+    ClosePeriodModel,
+    ExpenseClaimModel,
+    FixedAssetModel,
+    PayrollRunModel,
+    PurchaseOrderModel,
+)
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
 from domains.finance.simulator.consistency_check import run_consistency_check
 from domains.finance.simulator.generator import SimulatorSeeder
+from domains.finance.simulator.generator_v2 import SimulatorSeederV2
+
+
+@pytest.fixture
+async def seeded_expectations(clean_db: None, db_session: AsyncSession) -> dict:
+    await SimulatorSeeder(db_session, seed=42).seed()
+    expectations = await SimulatorSeederV2(db_session, seed=42).seed()
+    await db_session.commit()
+    return expectations
 
 
 @pytest.mark.asyncio
 async def test_freshly_seeded_data_has_no_violations(
-    clean_db: None, db_session: AsyncSession
+    seeded_expectations: dict, db_session: AsyncSession
 ) -> None:
-    seeder = SimulatorSeeder(db_session, seed=42)
-    await seeder.seed()
-    await db_session.commit()
-
-    violations = await run_consistency_check(db_session)
+    violations = await run_consistency_check(db_session, seeded_expectations)
     assert violations == []
+
+
+@pytest.mark.asyncio
+async def test_detects_self_approved_claim_outside_expectations(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    claim = (
+        await db_session.execute(
+            select(ExpenseClaimModel).where(ExpenseClaimModel.status == "approved")
+            .order_by(ExpenseClaimModel.claim_number)
+        )
+    ).scalars().first()
+    assert claim is not None
+    claim.approver_id = claim.employee_id
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("Self-approved claims" in v for v in violations)
+
+
+@pytest.mark.asyncio
+async def test_detects_payroll_totals_that_disagree_with_lines(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    run = (
+        await db_session.execute(select(PayrollRunModel).order_by(PayrollRunModel.period))
+    ).scalars().first()
+    assert run is not None
+    run.total_net = run.total_net + Decimal("1.00")
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("totals disagree" in v for v in violations)
+
+
+@pytest.mark.asyncio
+async def test_detects_matched_bank_transaction_without_a_link(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    line = (
+        await db_session.execute(
+            select(BankTransactionModel).where(
+                BankTransactionModel.matched_payment_id.is_not(None)
+            )
+        )
+    ).scalars().first()
+    assert line is not None
+    line.matched_payment_id = None
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("'matched' but has 0 match links" in v for v in violations)
+
+
+@pytest.mark.asyncio
+async def test_detects_a_maverick_po_that_is_not_in_expectations(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    po = (
+        await db_session.execute(
+            select(PurchaseOrderModel)
+            .where(PurchaseOrderModel.requisition_id.is_not(None))
+            .order_by(PurchaseOrderModel.po_number)
+        )
+    ).scalars().first()
+    assert po is not None
+    po.requisition_id = None
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("Maverick POs" in v for v in violations)
+
+
+@pytest.mark.asyncio
+async def test_detects_an_asset_with_salvage_above_cost(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    asset = (
+        await db_session.execute(
+            select(FixedAssetModel).order_by(FixedAssetModel.asset_tag)
+        )
+    ).scalars().first()
+    assert asset is not None
+    asset.salvage_value = asset.purchase_cost + Decimal("1.00")
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("salvage >= cost" in v for v in violations)
+
+
+@pytest.mark.asyncio
+async def test_detects_two_open_close_periods(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    periods = (
+        await db_session.execute(
+            select(ClosePeriodModel).order_by(ClosePeriodModel.period)
+        )
+    ).scalars().all()
+    periods[0].status = "open"
+    periods[0].closed_date = None
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("is not closed" in v for v in violations)
+
+
+@pytest.mark.asyncio
+async def test_detects_policy_violation_drift_on_a_claim(
+    seeded_expectations: dict, db_session: AsyncSession
+) -> None:
+    over_limit_numbers = seeded_expectations["over_limit_expense_claims"]["claim_numbers"]
+    claim = (
+        await db_session.execute(
+            select(ExpenseClaimModel).where(
+                ExpenseClaimModel.claim_number == over_limit_numbers[0]
+            )
+        )
+    ).scalars().one()
+    claim.policy_violations = []
+    await db_session.flush()
+
+    violations = await run_consistency_check(db_session, seeded_expectations)
+    assert any("policy_violations" in v and claim.claim_number in v for v in violations)
 
 
 @pytest.mark.asyncio

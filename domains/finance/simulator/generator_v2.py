@@ -47,6 +47,7 @@ from domains.finance.repositories.invoice_repository import (
     compute_invoice_status,
 )
 from domains.finance.repositories.payment_repository import PaymentRepository
+from domains.finance.simulation import full_months_between
 from domains.finance.simulator.constants import (
     APPROVAL_THRESHOLDS,
     ASSET_COST_RANGES,
@@ -457,7 +458,10 @@ class SimulatorSeederV2:
                 )
             )
 
-        # Planted anomaly: fully depreciated assets still in use.
+        # Planted anomaly: fully depreciated assets still in use. (Guarantees
+        # at least NUM_FULLY_DEPRECIATED_IN_USE; older base assets in short-
+        # lived classes go fully depreciated organically as well, so the
+        # expectations record the *computed* set below, never a hardcoded one.)
         method, life_months = DEPRECIATION_POLICIES["it_equipment"]
         for j in range(NUM_FULLY_DEPRECIATED_IN_USE):
             i = NUM_FIXED_ASSETS + 1 + j
@@ -484,9 +488,19 @@ class SimulatorSeederV2:
             )
             fully_depreciated_tags.append(asset_tag)
         await self._db.flush()
+
+        all_assets = (await self._db.execute(select(FixedAssetModel))).scalars().all()
+        computed_tags = sorted(
+            asset.asset_tag
+            for asset in all_assets
+            if asset.status == "in_use"
+            and full_months_between(asset.purchase_date, SIMULATION_TODAY)
+            >= asset.useful_life_months
+        )
+        assert set(fully_depreciated_tags) <= set(computed_tags)
         self._expectations["fully_depreciated_assets_in_use"] = {
-            "asset_tags": sorted(fully_depreciated_tags),
-            "count": len(fully_depreciated_tags),
+            "asset_tags": computed_tags,
+            "count": len(computed_tags),
         }
 
     # -- procurement ---------------------------------------------------------
@@ -998,6 +1012,12 @@ class SimulatorSeederV2:
         ).scalars().first()
         assert operating_account is not None
 
+        dept_by_name = {d.name: d for d in departments}
+        finance = dept_by_name["Finance"]
+        finance_staff = [e for e in employees if e.department_id == finance.id]
+        clerks = [e for e in finance_staff if e.grade in ("junior", "senior")] or finance_staff
+        finance_manager = self._department_manager(employees, finance.id)
+
         first = self._rng.choice(FIRST_NAMES)
         last = self._rng.choice(LAST_NAMES)
         customer = CustomerModel(
@@ -1041,6 +1061,8 @@ class SimulatorSeederV2:
                 tax=tax,
                 total=total,
             )
+            invoice.created_by_employee_id = self._rng.choice(clerks).id
+            invoice.approved_by_employee_id = finance_manager.id
             invoice_numbers.append(invoice.invoice_number)
             for product, quantity in item_specs:
                 self._db.add(
@@ -1067,6 +1089,7 @@ class SimulatorSeederV2:
                 reference_number=f"PMT-{uuid.uuid4().hex[:10].upper()}",
                 today=SIMULATION_TODAY,
             )
+            payment.created_by_employee_id = self._rng.choice(clerks).id
             self._db.add(
                 CashTransactionModel(
                     id=uuid.uuid4(),
