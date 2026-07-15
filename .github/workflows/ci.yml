@@ -91,10 +91,17 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ci_test
         run: alembic upgrade head
 
-      - name: Run deterministic evaluation suite
+      - name: Seed the finance simulator
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ci_test
-        run: python -m ai_platform.evaluation.run --suite core --mode recorded
+        run: python -m domains.finance.simulator.seed --reset
+
+      - name: Run deterministic evaluation suite against the recorded baseline
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ci_test
+        run: >
+          python -m ai_platform.evaluation.run --suite core --mode recorded
+          --baseline ../evals/baseline_core.json
 
   frontend:
     name: Frontend (lint + typecheck)

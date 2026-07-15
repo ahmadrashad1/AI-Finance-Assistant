@@ -47,7 +47,7 @@ async def test_run_suite_passes_persists_results_and_reports_pass(
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
 
-    report, all_passed = await run_suite(
+    report, all_passed, _case_results = await run_suite(
         suite="smoke", mode="recorded", record=False, case_filter=None,
         registry=registry, real_llm_service=None,
         evals_root=evals_root, cassettes_root=cassettes_root,
@@ -80,7 +80,7 @@ async def test_run_suite_reports_failure_when_cassette_is_stale(
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
 
-    report, all_passed = await run_suite(
+    report, all_passed, _case_results = await run_suite(
         suite="smoke", mode="recorded", record=False, case_filter=None,
         registry=registry, real_llm_service=None,
         evals_root=evals_root, cassettes_root=cassettes_root,
@@ -139,7 +139,7 @@ async def test_run_suite_recovers_from_unhandled_exception_in_one_case(
     registry = ToolRegistry()
     registry.register(GET_CURRENT_DATE_TOOL)
 
-    report, all_passed = await run_suite(
+    report, all_passed, _case_results = await run_suite(
         suite="smoke", mode="recorded", record=False, case_filter=None,
         registry=registry, real_llm_service=None,
         evals_root=evals_root, cassettes_root=cassettes_root,

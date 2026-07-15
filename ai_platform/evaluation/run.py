@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -52,7 +53,7 @@ async def run_suite(
     real_llm_service: LLMService | None,
     evals_root: Path | None = None,
     cassettes_root: Path | None = None,
-) -> tuple[str, bool]:
+) -> tuple[str, bool, dict[str, bool]]:
     cases = load_suite(suite, evals_root=evals_root)
     if case_filter is not None:
         cases = [c for c in cases if c.id == case_filter]
@@ -140,7 +141,38 @@ async def run_suite(
         stale_case_ids=stale_case_ids,
     )
     all_passed = all(s.passed for s in scores) and not stale_case_ids
-    return report, all_passed
+    case_results = {
+        case.id: (score.passed and case.id not in stale_case_ids)
+        for case, score in zip(cases, scores, strict=True)
+    }
+    return report, all_passed, case_results
+
+
+def compare_to_baseline(
+    case_results: dict[str, bool], baseline: dict[str, bool]
+) -> list[str]:
+    """Diff a run's per-case pass/fail against a committed baseline.
+
+    Returns human-readable drift lines (empty if identical). This is the
+    mechanism that lets CI gate on "behavior unchanged" rather than either
+    demanding 53/53 (never true; some failures are documented model-behavior
+    findings) or leaving the job permanently red for reasons unrelated to
+    what actually changed.
+    """
+    drift: list[str] = []
+    for case_id in sorted(set(baseline) | set(case_results)):
+        expected = baseline.get(case_id)
+        actual = case_results.get(case_id)
+        if expected is None:
+            drift.append(f"{case_id}: new case, not in baseline (actual={actual})")
+        elif actual is None:
+            drift.append(f"{case_id}: in baseline (passed={expected}) but missing from this run")
+        elif expected != actual:
+            direction = "REGRESSION" if expected and not actual else "unexpected improvement"
+            drift.append(
+                f"{case_id}: {direction} - baseline passed={expected}, now passed={actual}"
+            )
+    return drift
 
 
 def main() -> None:
@@ -155,6 +187,19 @@ def main() -> None:
         help="Call the real LLM and (re)write cassettes. Implies --mode live.",
     )
     parser.add_argument("--case", default=None, help="Run only this case id.")
+    parser.add_argument(
+        "--baseline", default=None, type=Path,
+        help=(
+            "Path to a committed baseline JSON ({case_id: passed}). Exit 0 iff this "
+            "run's per-case results are identical to the baseline, regardless of "
+            "whether individual cases pass - gates on 'behavior unchanged', not on "
+            "53/53 (some failures are documented model-behavior findings)."
+        ),
+    )
+    parser.add_argument(
+        "--write-baseline", default=None, type=Path,
+        help="Write this run's per-case results to this path as the new baseline.",
+    )
     args = parser.parse_args()
 
     mode = "live" if args.record else args.mode
@@ -162,7 +207,7 @@ def main() -> None:
     real_llm_service = get_llm_service() if mode == "live" else None
 
     try:
-        report, all_passed = asyncio.run(
+        report, all_passed, case_results = asyncio.run(
             run_suite(
                 suite=args.suite, mode=mode, record=args.record, case_filter=args.case,
                 registry=registry, real_llm_service=real_llm_service,
@@ -173,6 +218,26 @@ def main() -> None:
         sys.exit(1)
 
     print(report)
+
+    if args.write_baseline is not None:
+        args.write_baseline.write_text(
+            json.dumps(case_results, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(f"Baseline written to {args.write_baseline}.")
+        sys.exit(0)
+
+    if args.baseline is not None:
+        baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+        drift = compare_to_baseline(case_results, baseline)
+        if drift:
+            print("-" * 60)
+            print(f"Baseline drift detected against {args.baseline}:")
+            for line in drift:
+                print(f"  ! {line}")
+            sys.exit(1)
+        print(f"Matches baseline {args.baseline} - no drift.")
+        sys.exit(0)
+
     sys.exit(0 if all_passed else 1)
 
 
