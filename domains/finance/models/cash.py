@@ -19,6 +19,9 @@ class BankAccountModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     account_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    bank_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    account_number_masked: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     opening_balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     opening_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

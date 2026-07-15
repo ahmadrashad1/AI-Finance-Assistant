@@ -67,6 +67,12 @@ class VendorPaymentModel(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     payment_method: Mapped[str] = mapped_column(String(20), nullable=False)
     reference_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    created_by_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(f"{SCHEMA}.employees.id"), nullable=True
+    )
+    approved_by_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(f"{SCHEMA}.employees.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

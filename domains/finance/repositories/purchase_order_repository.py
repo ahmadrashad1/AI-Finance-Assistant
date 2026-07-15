@@ -24,7 +24,7 @@ class PurchaseOrderRepository:
         order_date: date,
         status: str,
         total_amount: Decimal,
-        approved_by: uuid.UUID | None = None,
+        approved_by_employee_id: uuid.UUID | None = None,
         approved_at: datetime | None = None,
     ) -> PurchaseOrderModel:
         purchase_order = PurchaseOrderModel(
@@ -33,7 +33,7 @@ class PurchaseOrderRepository:
             vendor_id=vendor_id,
             order_date=order_date,
             status=status,
-            approved_by=approved_by,
+            approved_by_employee_id=approved_by_employee_id,
             approved_at=approved_at,
             total_amount=total_amount,
         )

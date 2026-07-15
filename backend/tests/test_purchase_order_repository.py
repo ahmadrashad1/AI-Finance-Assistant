@@ -34,7 +34,7 @@ async def test_create_and_get_by_number(clean_db: None, db_session: AsyncSession
     fetched = await repo.get_by_number("PO-1001")
     assert fetched is not None
     assert fetched.id == po.id
-    assert fetched.approved_by is None
+    assert fetched.approved_by_employee_id is None
 
 
 @pytest.mark.asyncio

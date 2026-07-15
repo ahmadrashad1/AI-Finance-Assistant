@@ -220,7 +220,7 @@ class SimulatorSeeder:
                 vendor_id=vendor.id,
                 order_date=order_date,
                 status=status,
-                approved_by=approver.id if approver else None,
+                approved_by_employee_id=approver.id if approver else None,
                 approved_at=datetime.combine(order_date, datetime.min.time()) if approver else None,
                 total_amount=total_amount,
             )

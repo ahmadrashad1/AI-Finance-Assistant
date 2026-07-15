@@ -62,9 +62,13 @@ async def run_consistency_check(db: AsyncSession) -> list[str]:
             violations.append(
                 f"Purchase order {po.po_number} references missing vendor {po.vendor_id}"
             )
-        if po.approved_by is not None and po.approved_by not in employee_ids:
+        if (
+            po.approved_by_employee_id is not None
+            and po.approved_by_employee_id not in employee_ids
+        ):
             violations.append(
-                f"Purchase order {po.po_number} references missing approver {po.approved_by}"
+                f"Purchase order {po.po_number} references missing approver "
+                f"{po.approved_by_employee_id}"
             )
 
     invoice_items = (await db.execute(select(InvoiceItemModel))).scalars().all()

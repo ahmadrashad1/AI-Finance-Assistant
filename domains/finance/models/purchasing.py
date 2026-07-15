@@ -31,6 +31,9 @@ class PurchaseOrderModel(Base):
             name="ck_purchase_orders_status",
         ),
         Index("ix_purchase_orders_vendor_id", "vendor_id"),
+        Index("ix_purchase_orders_status", "status"),
+        Index("ix_purchase_orders_order_date", "order_date"),
+        Index("ix_purchase_orders_requisition_id", "requisition_id"),
         {"schema": SCHEMA},
     )
 
@@ -39,9 +42,17 @@ class PurchaseOrderModel(Base):
     vendor_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{SCHEMA}.vendors.id"), nullable=False
     )
+    # Deliberately NULL for maverick purchase orders raised without a
+    # requisition (PRD Ch.20 Phase C).
+    requisition_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(f"{SCHEMA}.purchase_requisitions.id"), nullable=True
+    )
     order_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
-    approved_by: Mapped[uuid.UUID | None] = mapped_column(
+    created_by_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(f"{SCHEMA}.employees.id"), nullable=True
+    )
+    approved_by_employee_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(f"{SCHEMA}.employees.id"), nullable=True
     )
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
