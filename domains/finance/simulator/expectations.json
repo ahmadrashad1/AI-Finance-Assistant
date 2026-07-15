@@ -1,0 +1,241 @@
+{
+  "category_overspend": {
+    "category": "travel",
+    "department_name": "Sales"
+  },
+  "deteriorating_customer": {
+    "company_name": "Ridgeline Fabrication Ltd.",
+    "customer_code": "CUST-0026",
+    "invoice_numbers": [
+      "INV-8001",
+      "INV-8002",
+      "INV-8003",
+      "INV-8004",
+      "INV-8005",
+      "INV-8006",
+      "INV-8007",
+      "INV-8008"
+    ],
+    "lateness_days": [
+      0,
+      2,
+      5,
+      12,
+      25,
+      40
+    ],
+    "unpaid_invoice_numbers": [
+      "INV-8007",
+      "INV-8008"
+    ]
+  },
+  "duplicate_expense_claims": {
+    "count": 2,
+    "pairs": [
+      [
+        "EXP-00182",
+        "EXP-00339"
+      ],
+      [
+        "EXP-00238",
+        "EXP-00340"
+      ]
+    ]
+  },
+  "duplicate_invoices": {
+    "count": 5,
+    "pairs": [
+      {
+        "duplicate": "INV-9001",
+        "original": "INV-7142"
+      },
+      {
+        "duplicate": "INV-9002",
+        "original": "INV-7055"
+      },
+      {
+        "duplicate": "INV-9003",
+        "original": "INV-7077"
+      },
+      {
+        "duplicate": "INV-9004",
+        "original": "INV-7192"
+      },
+      {
+        "duplicate": "INV-9005",
+        "original": "INV-7160"
+      }
+    ]
+  },
+  "fully_depreciated_assets_in_use": {
+    "asset_tags": [
+      "FA-0049",
+      "FA-0050",
+      "FA-0051"
+    ],
+    "count": 3
+  },
+  "late_submission_expense_claims": {
+    "claim_numbers": [
+      "EXP-00123",
+      "EXP-00138",
+      "EXP-00161",
+      "EXP-00163",
+      "EXP-00320",
+      "EXP-00327",
+      "EXP-00337"
+    ],
+    "count": 7
+  },
+  "maverick_purchase_orders": {
+    "count": 3,
+    "po_numbers": [
+      "PO-1030",
+      "PO-1037",
+      "PO-1038"
+    ]
+  },
+  "missing_receipt_expense_claims": {
+    "claim_numbers": [
+      "EXP-00085",
+      "EXP-00098",
+      "EXP-00125",
+      "EXP-00235",
+      "EXP-00303",
+      "EXP-00323"
+    ],
+    "count": 6
+  },
+  "over_budget_departments": {
+    "count": 2,
+    "department_names": [
+      "Engineering",
+      "Operations"
+    ]
+  },
+  "over_limit_expense_claims": {
+    "claim_numbers": [
+      "EXP-00003",
+      "EXP-00005",
+      "EXP-00013",
+      "EXP-00014",
+      "EXP-00015",
+      "EXP-00018",
+      "EXP-00025",
+      "EXP-00027",
+      "EXP-00030",
+      "EXP-00031",
+      "EXP-00033",
+      "EXP-00043",
+      "EXP-00054",
+      "EXP-00057",
+      "EXP-00058",
+      "EXP-00166",
+      "EXP-00178",
+      "EXP-00194",
+      "EXP-00237",
+      "EXP-00270",
+      "EXP-00281",
+      "EXP-00314",
+      "EXP-00319"
+    ],
+    "count": 23
+  },
+  "price_variance_products": [
+    {
+      "purchases": [
+        {
+          "po_number": "PO-2001",
+          "unit_price": "4342.50",
+          "vendor_code": "VEND-0003"
+        },
+        {
+          "po_number": "PO-2002",
+          "unit_price": "6513.75",
+          "vendor_code": "VEND-0001"
+        }
+      ],
+      "sku": "SKU-0004"
+    },
+    {
+      "purchases": [
+        {
+          "po_number": "PO-2003",
+          "unit_price": "2407.50",
+          "vendor_code": "VEND-0015"
+        },
+        {
+          "po_number": "PO-2004",
+          "unit_price": "3611.25",
+          "vendor_code": "VEND-0006"
+        }
+      ],
+      "sku": "SKU-0014"
+    }
+  ],
+  "scale": {
+    "bank_accounts": 3,
+    "bank_transactions": 625,
+    "budget_lines": 882,
+    "close_periods": 18,
+    "customers": 26,
+    "departments": 7,
+    "employees": 45,
+    "expense_claims": 340,
+    "fixed_assets": 51,
+    "invoices": 213,
+    "payroll_runs": 18,
+    "purchase_orders": 44,
+    "purchase_requisitions": 62,
+    "tax_periods": 6,
+    "vendors": 15
+  },
+  "seed": 42,
+  "self_approved_expense_claims": {
+    "claim_numbers": [
+      "EXP-00219"
+    ],
+    "count": 1
+  },
+  "simulation_date": "2026-07-08",
+  "unapproved_payment_above_threshold": {
+    "amount": "452550.00",
+    "count": 1,
+    "threshold": "25000.00",
+    "vendor_invoice_number": "VINV-4024"
+  },
+  "under_budget_department": {
+    "department_name": "Finance"
+  },
+  "unmatched_bank_transactions": {
+    "count": 12,
+    "proportion": 0.0192,
+    "references": [
+      "STMT-UNKNOWN-01",
+      "STMT-UNKNOWN-02",
+      "STMT-UNKNOWN-03",
+      "STMT-UNKNOWN-04",
+      "STMT-UNKNOWN-05",
+      "STMT-UNKNOWN-06",
+      "STMT-UNKNOWN-07",
+      "STMT-UNKNOWN-08",
+      "STMT-UNKNOWN-09",
+      "STMT-UNKNOWN-10",
+      "STMT-UNKNOWN-11",
+      "STMT-UNKNOWN-12"
+    ]
+  },
+  "unmirrored_internal_payments": {
+    "count": 6,
+    "invoice_numbers": [
+      "INV-7103",
+      "INV-7182",
+      "INV-8001"
+    ],
+    "vendor_invoice_numbers": [
+      "VINV-4009",
+      "VINV-4027",
+      "VINV-4030"
+    ]
+  }
+}

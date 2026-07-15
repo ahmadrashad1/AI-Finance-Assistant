@@ -36,3 +36,47 @@ PRODUCT_CATALOG: dict[str, list[str]] = {
 DEPARTMENT_NAMES = ["Finance", "Procurement", "Operations", "Sales", "Engineering"]
 EMPLOYEE_ROLES = ["Accountant", "Buyer", "Operations Manager", "Sales Rep", "Engineer"]
 EXPENSE_CATEGORIES = ["travel", "meals", "supplies", "software", "training"]
+
+# --- Simulator v2 pools (PRD Ch.19). Only consumed by the v2 phase; the v1
+# pools above must never change (the frozen v1 RNG stream draws from them). ---
+V2_DEPARTMENT_NAMES = ["Human Resources", "IT"]
+V2_EMPLOYEE_ROLES = [
+    "HR Specialist", "IT Administrator", "Financial Analyst", "Payroll Officer",
+    "Procurement Analyst", "Production Planner", "Account Executive", "QA Engineer",
+]
+ASSET_NAME_POOLS: dict[str, list[str]] = {
+    "machinery": [
+        "CNC Milling Machine", "Injection Molding Press", "Welding Robot Cell",
+        "Overhead Crane", "Industrial Compressor", "Packaging Line", "Lathe Station",
+    ],
+    "vehicle": ["Delivery Truck", "Forklift", "Company Van", "Flatbed Trailer"],
+    "it_equipment": [
+        "Rack Server", "Engineering Workstation", "Network Switch Stack",
+        "Laptop Fleet Batch", "NAS Storage Array", "Conference AV System",
+    ],
+    "office_furniture": [
+        "Desk Cluster", "Ergonomic Chair Set", "Meeting Room Fit-out", "Filing Cabinet Row",
+    ],
+}
+REQUISITION_JUSTIFICATIONS = [
+    "Replacement of worn production tooling",
+    "Capacity expansion for the new contract",
+    "Scheduled maintenance materials",
+    "Department software licence renewal",
+    "Safety equipment replenishment",
+    "Prototype materials for engineering trial",
+    "Warehouse racking extension",
+    "Customer order fulfilment materials",
+]
+CLOSE_TASK_TEMPLATE = [
+    # (task name, category)
+    ("Bank reconciliation", "cash"),
+    ("AR subledger reconciliation", "receivables"),
+    ("AP subledger reconciliation", "payables"),
+    ("Post payroll journal", "payroll"),
+    ("Run depreciation", "assets"),
+    ("Accrue unbilled expenses", "accruals"),
+    ("Budget variance review", "reporting"),
+    ("Management reporting pack", "reporting"),
+]
+BANK_NAMES = ["First Meridian Bank", "Commerce Trust Bank", "Northgate National Bank"]

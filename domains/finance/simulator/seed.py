@@ -8,9 +8,26 @@ from sqlalchemy import text
 
 from app.db.session import get_engine, get_sessionmaker
 from domains.finance.simulator.constants import DEFAULT_SEED
+from domains.finance.simulator.expectations import DEFAULT_EXPECTATIONS_PATH, write_expectations
 from domains.finance.simulator.generator import SimulatorSeeder
+from domains.finance.simulator.generator_v2 import SimulatorSeederV2
 
 FINANCE_TABLES = (
+    "finance.bank_transactions",
+    "finance.payroll_lines",
+    "finance.payroll_runs",
+    "finance.close_tasks",
+    "finance.close_periods",
+    "finance.tax_periods",
+    "finance.tax_rates",
+    "finance.budgets",
+    "finance.fixed_assets",
+    "finance.requisition_items",
+    "finance.purchase_requisitions",
+    "finance.expense_limit_policies",
+    "finance.approval_threshold_policies",
+    "finance.expense_submission_policies",
+    "finance.depreciation_policies",
     "finance.cash_transactions",
     "finance.bank_accounts",
     "finance.vendor_payments",
@@ -46,10 +63,18 @@ async def run_seed(reset: bool, seed: int) -> None:
 
     sessionmaker = get_sessionmaker()
     async with sessionmaker() as session:
+        # Phase 1: the frozen v1 pipeline (must keep its exact RNG stream --
+        # the evaluation cassettes were recorded against this data).
         seeder = SimulatorSeeder(session, seed=seed)
         await seeder.seed()
+        # Phase 2: the v2 company extension, on a separate RNG stream.
+        seeder_v2 = SimulatorSeederV2(session, seed=seed)
+        expectations = await seeder_v2.seed()
         await session.commit()
+
+    path = write_expectations(expectations, DEFAULT_EXPECTATIONS_PATH)
     print(f"Seeded Northwind Manufacturing Ltd. (seed={seed}).")
+    print(f"Expectations written to {path}.")
 
 
 def main() -> None:
