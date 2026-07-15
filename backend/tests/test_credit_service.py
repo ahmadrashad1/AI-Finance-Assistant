@@ -102,6 +102,26 @@ async def test_credit_exposure_flags_over_limit(clean_db: None, db_session: Asyn
 
 
 @pytest.mark.asyncio
+async def test_credit_exposure_zero_limit_with_outstanding_balance_is_not_zero_percent(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer = await _make_customer(db_session, "CUST-7003B", credit_limit=Decimal("0"))
+    invoice_repo = InvoiceRepository(db_session)
+    await invoice_repo.create(
+        invoice_number="INV-7201", customer_id=customer.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("1000"), tax=Decimal("0"), total=Decimal("1000"),
+    )
+    await db_session.commit()
+
+    [exposure] = await _service(db_session).get_credit_exposure(customer_id="CUST-7003B")
+    assert exposure.outstanding_balance == Decimal("1000")
+    assert exposure.over_limit is True
+    assert exposure.utilization_percent != 0.0
+    assert exposure.utilization_percent > 100.0
+
+
+@pytest.mark.asyncio
 async def test_list_customers_over_credit_limit_filters_and_sorts(
     clean_db: None, db_session: AsyncSession
 ) -> None:

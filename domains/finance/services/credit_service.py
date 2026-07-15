@@ -14,6 +14,12 @@ from domains.finance.repositories.payment_repository import PaymentRepository
 UNPAID_STATUSES: Final[tuple[str, ...]] = ("sent", "partially_paid", "overdue")
 TREND_THRESHOLD_DAYS: Final[int] = 5
 MINIMUM_INVOICES_FOR_TREND: Final[int] = 4
+# Utilization percent reported when credit_limit == 0 and there is
+# outstanding debt: division is undefined, but `over_limit` is correctly
+# True (any positive balance exceeds a zero limit), so utilization must
+# reflect "maximally over", never 0.0 - a finite sentinel keeps the value
+# JSON-serializable (unlike float("inf")) while remaining unambiguous.
+UNBOUNDED_UTILIZATION_PERCENT: Final[float] = 999999.0
 
 
 @dataclass(frozen=True)
@@ -129,9 +135,12 @@ class CreditService:
             statuses=UNPAID_STATUSES, customer_id=customer.id
         )
         outstanding = sum((invoice.balance for invoice in unpaid), Decimal("0"))
-        utilization = (
-            float(outstanding / customer.credit_limit * 100) if customer.credit_limit > 0 else 0.0
-        )
+        if customer.credit_limit > 0:
+            utilization = float(outstanding / customer.credit_limit * 100)
+        elif outstanding > 0:
+            utilization = UNBOUNDED_UTILIZATION_PERCENT
+        else:
+            utilization = 0.0
         return CreditExposure(
             customer_code=customer.customer_code,
             customer_name=customer.company_name,
