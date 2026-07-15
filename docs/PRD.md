@@ -7504,3 +7504,1241 @@ The Finance Assistant then becomes the first domain implementation on top of a r
 That small naming and repository decision will make it much easier to grow this project into a family of AI employees without restructuring the codebase later. I believe it aligns perfectly with your long-term goal of building business AI assistants rather than a single-purpose finance chatbot.
 
 
+# AI Finance Assistant — PRD/SDD Addendum
+## Chapters 18–27: Finance Domain Expansion
+
+Version: 1.1
+Status: Draft
+Scope: Extends the MVP from an invoice-centric assistant (AR/AP) to a complete
+read-fetch-reason finance analyst covering eleven finance domains.
+
+---
+
+# Chapter 18 — Domain Expansion Strategy
+
+## Purpose
+
+Chapters 1–17 delivered an AI Finance Assistant capable of reasoning over invoices,
+customers, vendors, and purchase orders.
+
+That is a narrow slice of what a finance department actually does.
+
+This chapter defines how the assistant grows from an accounts-receivable analyst
+into a general finance analyst, without destabilizing the system that already works.
+
+## The Problem With Invoice-Only Coverage
+
+A finance employee does not only think about invoices.
+
+In a single day, the same person may:
+
+Approve an expense claim.
+Reconcile a bank statement.
+Check whether a department is over budget.
+Forecast whether cash will cover next month's payroll.
+Decide whether a customer deserves a higher credit limit.
+Answer an auditor's question.
+
+If the assistant cannot help with these, it is a reporting tool, not a colleague.
+
+## The Eleven Target Domains
+
+The assistant will be extended to cover the following domains.
+
+Existing (Chapters 1–17):
+
+Accounts Receivable
+Accounts Payable
+Purchase Orders
+Basic Reporting
+
+New (this addendum):
+
+1. Expense Management
+2. Credit Management
+3. Cash Flow Forecasting
+4. Financial Planning & Analysis (Budgets)
+5. Bank Reconciliation
+6. Fixed Assets & Depreciation
+7. Payroll Analysis
+8. Procurement & Requisitions
+9. Financial Close Management
+10. Tax & Compliance Reporting
+11. Audit Support & Internal Controls
+
+## Scope Boundary — Read, Fetch, Reason
+
+Every new capability in this addendum is strictly read-only.
+
+The assistant may:
+
+Retrieve data.
+Apply deterministic business rules.
+Reason over the results.
+Explain conclusions.
+Recommend actions.
+
+The assistant may NOT:
+
+Create records.
+Modify records.
+Approve anything.
+Execute payments.
+Send communications.
+
+Write operations remain out of scope until an approval-and-audit workflow layer is
+designed. Recommendation is permitted; execution is not.
+
+This preserves the principle established in Chapter 2:
+
+Reasoning always comes before execution.
+
+## The Tool Budget Problem
+
+Chapter 10 established that a larger toolset does not produce a smarter assistant.
+
+Exposing too many tools increases:
+
+Reasoning complexity.
+Tool selection errors.
+Latency.
+Maintenance cost.
+
+The existing MVP exposes roughly fifteen tools.
+
+The eleven new domains would add approximately thirty-five more.
+
+At fifty tools, naive tool exposure will degrade planning accuracy, particularly on
+smaller models. Several tools will overlap semantically. "Show department spending"
+could plausibly map to an expense tool, a budget tool, or a payroll tool.
+
+Two mitigations are mandatory.
+
+## Mitigation 1 — Semantic Distinctness
+
+Every tool description must state, explicitly:
+
+What the tool returns.
+What question it answers.
+What it does NOT do, when a sibling tool is easily confused with it.
+
+Example:
+
+get_expense_claims — Returns individual employee expense claim records
+(travel, meals, supplies). Does NOT return departmental budget performance;
+use get_budget_variance for that.
+
+Tool descriptions are prompt engineering artifacts. They are versioned like prompts.
+
+## Mitigation 2 — Domain Routing
+
+Chapter 24 defines a domain router: a lightweight classification step that narrows
+the tool set presented to the planner.
+
+Routing is introduced only when measured tool-selection accuracy justifies it.
+
+The decision is data-driven, not speculative. The evaluation framework decides.
+
+## LLM Provider Constraints
+
+The assistant runs on the Groq API.
+
+Groq provides very low latency, which materially improves the two-phase pipeline
+(two sequential LLM calls per request). However, the models available are generally
+smaller than frontier models and are more sensitive to:
+
+Large tool sets.
+Ambiguous tool descriptions.
+Loosely specified parameter schemas.
+Unstructured planning output.
+
+Three requirements follow.
+
+Planning output must be strictly structured. Phase 1 must return machine-parseable
+JSON conforming to a schema, validated before execution, with a bounded retry on
+parse failure.
+
+Parameter schemas must be tight. Prefer enums over free strings. Prefer explicit
+date ranges over natural-language dates resolved by the model. Where the model must
+resolve a relative date ("last quarter"), a deterministic date-resolution tool
+should do the arithmetic.
+
+Every domain addition must be measured. Tool-selection accuracy is recorded before
+and after each domain is added. A regression is a blocking defect.
+
+## Phased Delivery
+
+The eleven domains are delivered in three phases, ordered by schema cost and risk.
+
+Phase A — No new schema required. Data already exists in the simulator.
+
+Expense Management
+Credit Management
+Cash Flow Forecasting
+
+Phase B — One new entity group each.
+
+Financial Planning & Analysis (budgets)
+Bank Reconciliation (bank transactions)
+Fixed Assets (assets and depreciation)
+
+Phase C — Heavier modeling and higher risk.
+
+Payroll Analysis
+Procurement & Requisitions
+Financial Close Management
+Tax & Compliance Reporting
+Audit Support & Internal Controls
+
+Each phase must end in a demonstrable, fully evaluated application. The rule from
+Chapter 16 is unchanged: a smaller working system is more valuable than a larger
+broken system.
+
+## Success Criteria for the Expansion
+
+The expansion is successful when:
+
+A finance employee can ask a question from any of the eleven domains and receive an
+accurate, explained answer.
+
+Tool-selection accuracy across the full suite remains at or above the accuracy
+measured before the expansion began.
+
+No hallucinated financial figures appear in any evaluation case.
+
+Every domain has at least five evaluation cases, including one hallucination trap.
+
+The assistant correctly refuses write requests and explains what it can do instead.
+
+---
+
+# Chapter 19 — Finance Simulation Environment v2
+
+## Purpose
+
+The simulator described in Chapter 11 models a company that only issues invoices and
+receives payments.
+
+A real company also pays salaries, holds bank accounts, sets budgets, owns equipment,
+approves expenses, raises purchase requisitions, closes its books monthly, and files
+tax returns.
+
+The simulator must be extended so that Northwind Manufacturing Ltd. behaves like a
+complete business.
+
+## Design Philosophy (Unchanged)
+
+Every record must belong to a believable business story.
+
+The assistant must never be able to detect that it is talking to a simulator.
+
+Data must be internally consistent, deterministic, and repeatable from a fixed seed.
+
+## The Expanded Company
+
+Northwind Manufacturing Ltd. now has:
+
+Departments with annual and monthly budgets.
+Employees with salaries, grades, and departments.
+Bank accounts with transaction histories.
+Fixed assets with depreciation schedules.
+Expense claims submitted by employees against departments.
+Purchase requisitions that precede purchase orders.
+Monthly financial close checklists.
+Tax registrations and periodic tax positions.
+Approval and creation metadata on financial transactions.
+
+## Consistency Invariants
+
+The simulator seed is only valid if every invariant below holds. A consistency check
+script must assert all of them.
+
+Existing invariants (Chapter 11) remain in force:
+
+Every invoice belongs to a real customer.
+Every purchase order belongs to a real vendor.
+Invoice balance equals total minus the sum of applied payments.
+Overdue status agrees with due dates and the simulation date.
+
+New invariants:
+
+Every expense claim belongs to a real employee and a real department.
+Approved expense claims must have an approver who is not the claimant.
+Every bank transaction either matches a recorded payment, matches a payroll run,
+represents a known bank fee or interest line, or is deliberately unmatched to create
+reconciliation work.
+The proportion of deliberately unmatched bank transactions is fixed and known, so
+reconciliation tools have a verifiable expected answer.
+Every department budget line has actual spend derived from real transactions
+(expenses, purchase orders, payroll), not from random numbers.
+At least two departments must be over budget and at least one materially under
+budget, so variance analysis has something meaningful to explain.
+Every fixed asset has a purchase date, cost, useful life, depreciation method, and a
+computed accumulated depreciation consistent with the simulation date.
+Every payroll run sums to the salaries of active employees for that period, plus
+overtime and deductions, and appears as a matching bank transaction.
+Every purchase order traces back to an approved purchase requisition, except for a
+small, deliberate set of maverick purchase orders raised without requisitions, which
+exist to give audit and control tools something to find.
+Tax positions must be derivable from the underlying invoices and vendor payments,
+not stored as independent random values.
+Every financial close period has a checklist with a mix of completed, in-progress,
+and blocked tasks for at least one open period.
+
+## Deliberate Anomalies
+
+The simulator must contain planted anomalies. Without them, analytical tools cannot
+be validated and evaluation cases cannot assert non-trivial answers.
+
+Required planted anomalies:
+
+Duplicate invoices (already present).
+Expense claims that exceed policy limits.
+Expense claims submitted more than a set number of days after the expense date.
+At least one expense claim approved by the claimant themselves.
+Bank transactions with no matching internal record.
+Internal payments with no matching bank transaction.
+Purchase orders raised without a requisition.
+Purchase orders where the same product is bought from multiple vendors at materially
+different unit prices.
+Customers whose payment behavior deteriorated over time.
+A department that overspent its budget in a specific category.
+Fully depreciated assets still recorded as in use.
+A payment above the approval threshold with no recorded approver.
+
+Every planted anomaly must be recorded in a machine-readable expectations file
+generated at seed time. Evaluation cases reference this file so that expected answers
+remain correct whenever the seed changes.
+
+## Company Policies
+
+Chapter 11 mentions company policies. They now become explicit, structured, and
+queryable data — not prose inside a prompt.
+
+Policies stored as structured records include:
+
+Expense limits by category and employee grade.
+Receipt requirements by amount threshold.
+Expense submission deadlines.
+Approval thresholds for expenses, purchase requisitions, and payments.
+Standard customer payment terms and credit limits.
+Standard vendor payment terms.
+Depreciation methods and useful lives by asset class.
+Tax rates by jurisdiction and category.
+
+Policies live in the database. Business rules that apply them live in services.
+Neither lives in a prompt. This preserves Chapter 17's rule that prompts must not
+contain finance policies.
+
+## Simulation Date
+
+Reports, aging, depreciation, overdue status, and close periods all depend on "today."
+
+A single configurable simulation date governs all of them.
+
+The seed generator and every service must derive time-dependent values from this
+date, never from an implicit system clock inside business logic. This keeps
+evaluation cases stable over time.
+
+## Seed Scale
+
+The seed should be large enough to be realistic and small enough to reason about.
+
+Target scale:
+
+Departments: 6–8
+Employees: 40–60
+Customers: 25 (existing)
+Vendors: 15 (existing)
+Invoices: 200+ (existing)
+Purchase requisitions: 60–80
+Purchase orders: 40+ (existing)
+Expense claims: 250–350 across 18 months
+Bank accounts: 2–3
+Bank transactions: 600–900 across 18 months
+Budget lines: department × category × month for 18 months
+Fixed assets: 40–60
+Payroll runs: 18 monthly runs
+Close periods: 18, with the most recent one open
+Tax periods: 6 quarterly positions
+
+---
+
+# Chapter 20 — Database Design Extensions
+
+## Purpose
+
+Chapter 12 established three PostgreSQL schemas: finance, application, evaluation.
+
+This chapter extends the finance schema. The application and evaluation schemas are
+unchanged.
+
+## Design Rules (Unchanged)
+
+The database is designed as if we were building a real ERP, not as if we were
+building an AI application.
+
+The LLM never sees table names.
+
+Repositories access data. Services apply rules. Tools expose capabilities.
+
+## Phase A — No New Tables
+
+Expense Management uses the existing expense_claims table, extended with the columns
+required by policy checking.
+
+Credit Management is derived entirely from existing customers, invoices, and payments.
+
+Cash Flow Forecasting is derived entirely from existing invoices, purchase orders,
+payments, and (once Phase C lands) payroll.
+
+Columns to add to expense_claims:
+
+employee_id, department_id, category, expense_date, submitted_date, amount, currency,
+description, receipt_attached, status, approver_id, approved_date, policy_violations.
+
+## Phase B — New Entity Groups
+
+Budgets.
+
+budgets: department_id, fiscal_year, category, period (month), budgeted_amount.
+Actuals are never stored. They are always computed from real transactions, so that
+variance can never drift out of sync with reality.
+
+Bank.
+
+bank_accounts: account_name, bank_name, account_number_masked, currency,
+opening_balance, opening_date.
+
+bank_transactions: bank_account_id, transaction_date, description, reference, amount
+(signed), transaction_type, matched_payment_id (nullable), matched_payroll_run_id
+(nullable), match_status.
+
+Match status must be derivable. The reconciliation service must be able to recompute
+matches deterministically; stored matches exist only as the record of the seeded
+truth.
+
+Fixed Assets.
+
+fixed_assets: asset_tag, name, asset_class, department_id, vendor_id, purchase_date,
+purchase_cost, useful_life_months, depreciation_method, salvage_value, status,
+disposal_date, disposal_proceeds.
+
+Accumulated depreciation and net book value are computed by a service from the
+simulation date. They are not stored.
+
+## Phase C — Heavier Modeling
+
+Payroll.
+
+payroll_runs: period, run_date, status, total_gross, total_deductions, total_net,
+bank_transaction_id.
+
+payroll_lines: payroll_run_id, employee_id, base_salary, overtime, bonus,
+tax_withheld, other_deductions, net_pay.
+
+employees is extended with: grade, salary, hire_date, termination_date, manager_id,
+department_id, status.
+
+Procurement.
+
+purchase_requisitions: requisition_number, requester_employee_id, department_id,
+requested_date, needed_by_date, justification, estimated_amount, status,
+approver_id, approved_date.
+
+requisition_items: requisition_id, product_id, quantity, estimated_unit_price.
+
+purchase_orders is extended with: requisition_id (nullable — deliberately null for
+maverick purchase orders), created_by_employee_id, approved_by_employee_id.
+
+Financial Close.
+
+close_periods: period, status (open, in_progress, closed), opened_date, closed_date.
+
+close_tasks: close_period_id, task_name, category, owner_employee_id, status, due_date,
+completed_date, blocking_reason.
+
+Tax.
+
+tax_rates: jurisdiction, category, rate, effective_from, effective_to.
+
+tax_periods: jurisdiction, period, status, filing_due_date, filed_date.
+
+Tax positions (collected, paid, net payable) are computed from invoices and vendor
+payments by a service, never stored as free-standing values.
+
+Audit and Controls.
+
+No dedicated tables. Audit capabilities are derived from approval and creation
+metadata added across transactional tables:
+
+created_by_employee_id and approved_by_employee_id on invoices, payments, expense
+claims, purchase requisitions, and purchase orders.
+
+This is what makes segregation-of-duties analysis possible: the assistant can find
+transactions where the creator and approver are the same person, or where an approval
+was missing above a threshold.
+
+## Indexing
+
+Every column used as a common filter must be indexed:
+
+Status columns, date columns, foreign keys, department_id, employee_id, category.
+
+Analytical tools scan far more rows than lookup tools. Indexing is a functional
+requirement, not an optimization.
+
+---
+
+# Chapter 21 — Phase A Domains
+
+## Domain 1 — Expense Management
+
+### Business Context
+
+Employees submit claims. Finance checks them against policy. Managers approve or
+reject. Finance reimburses.
+
+The manual pain is policy checking at volume, and spotting duplicates or late
+submissions.
+
+### Capabilities
+
+get_expense_claims(employee_id?, department_id?, status?, category?, date_from?,
+date_to?, minimum_amount?)
+
+Returns individual expense claim records with policy-violation flags.
+
+get_pending_expense_approvals(department_id?, older_than_days?)
+
+Returns claims awaiting approval, highlighting those waiting longest.
+
+get_expense_policy_violations(department_id?, date_from?, date_to?)
+
+Returns claims that breach a policy: over category limit, missing required receipt,
+submitted after the deadline, or self-approved. The violation rules are deterministic
+and live in the service layer.
+
+get_expense_summary_by_department(date_from?, date_to?, category?)
+
+Returns aggregated spend by department and category.
+
+find_duplicate_expense_claims(employee_id?, date_from?, date_to?)
+
+Detects likely duplicate claims: same employee, same or near-identical amount, same
+category, within a small date window. Deterministic heuristic, service layer only.
+
+### Reasoning Examples
+
+Which expense claims are still waiting for approval?
+Show claims that break our travel policy this quarter.
+How much did Sales spend on travel last month?
+Is anyone submitting duplicate claims?
+
+## Domain 2 — Credit Management
+
+### Business Context
+
+Before extending terms or a higher credit limit, finance assesses a customer's
+payment behavior and current exposure.
+
+All of this is derivable from data the simulator already has.
+
+### Capabilities
+
+get_customer_payment_behavior(customer_id)
+
+Returns average days-to-pay, payment reliability trend over time, count of late
+payments, longest delay, and whether behavior is improving or deteriorating.
+
+get_credit_exposure(customer_id?)
+
+Returns current outstanding balance versus credit limit, utilization percentage, and
+whether the limit is exceeded.
+
+list_customers_over_credit_limit()
+
+Returns all customers whose exposure exceeds their approved limit.
+
+assess_credit_risk(customer_id)
+
+Returns a structured risk profile combining exposure, payment behavior, invoice
+history, and disputes. The tool returns evidence and deterministic risk indicators.
+It does NOT return a recommendation — the assistant reasons over the evidence and
+recommends in Phase 2. This is a deliberate architectural boundary: judgment belongs
+to the reasoning layer, facts belong to tools.
+
+### Reasoning Examples
+
+Should we increase ABC Industries' credit limit?
+Which customers are over their credit limit?
+Is XYZ Corp paying slower than they used to?
+
+## Domain 3 — Cash Flow Forecasting
+
+### Business Context
+
+The existing get_cash_position tool answers "what do we have now."
+
+Finance needs "what will we have, and can we cover what's coming."
+
+### Capabilities
+
+get_expected_inflows(date_from, date_to)
+
+Returns expected customer receipts in the window, based on unpaid invoices and their
+due dates, adjusted by each customer's historical payment behavior. The adjustment
+rule is deterministic and documented in the service.
+
+get_expected_outflows(date_from, date_to)
+
+Returns expected payments out: vendor invoices due, approved requisitions and open
+purchase orders, scheduled payroll (once Phase C lands), and recurring costs.
+
+forecast_cash_flow(weeks)
+
+Returns a period-by-period projection of opening balance, inflows, outflows, and
+closing balance.
+
+get_payment_prioritization()
+
+Returns the data needed to decide which vendor invoices to pay first: due dates,
+payment terms, early-payment discounts, vendor criticality, and available cash. The
+tool ranks by deterministic criteria; the assistant explains the trade-offs.
+
+### Reasoning Examples
+
+Will we have enough cash to cover next month?
+What's our 8-week cash forecast?
+Which vendor invoices should I pay first this week?
+What happens to our cash if ABC pays late again?
+
+---
+
+# Chapter 22 — Phase B Domains
+
+## Domain 4 — Financial Planning & Analysis (Budgets)
+
+### Business Context
+
+Managers ask two questions constantly: are we on budget, and if not, why.
+
+Actuals must always be computed from transactions. Never stored. A stored actual is a
+number that will eventually disagree with the underlying data.
+
+### Capabilities
+
+get_budget_vs_actual(department_id?, category?, period?, fiscal_year?)
+
+Returns budgeted amount, computed actual, variance in currency, and variance as a
+percentage.
+
+get_budget_variance_analysis(department_id?, period?)
+
+Returns the largest variances with their contributing transactions, so the assistant
+can explain WHY a variance exists rather than merely reporting that it exists. This
+is the difference between a report and an analyst.
+
+get_department_spending(department_id?, date_from?, date_to?, category?)
+
+Returns actual spend broken down by category and source (expenses, purchase orders,
+payroll).
+
+compare_periods(metric, period_a, period_b, department_id?)
+
+Returns a like-for-like comparison of a metric across two periods.
+
+### Reasoning Examples
+
+Which departments are over budget?
+Why is Marketing 20% over budget this quarter?
+Compare Q2 spend to Q1.
+What's driving the increase in operations costs?
+
+## Domain 5 — Bank Reconciliation
+
+### Business Context
+
+Finance matches internal payment records to actual bank transactions. Mismatches mean
+missing payments, unrecorded fees, or errors.
+
+### Capabilities
+
+get_bank_transactions(bank_account_id?, date_from?, date_to?, match_status?,
+minimum_amount?)
+
+Returns bank statement lines.
+
+get_unreconciled_transactions(bank_account_id?, date_from?, date_to?)
+
+Returns bank transactions with no matching internal record, and internal payments
+with no matching bank transaction. Both directions matter.
+
+reconcile_bank_account(bank_account_id, period)
+
+Runs the deterministic matching algorithm (amount, date proximity, reference) and
+returns matched items, unmatched items in both directions, and the resulting
+discrepancy total.
+
+explain_balance_difference(bank_account_id, period)
+
+Returns the itemized components of the difference between the bank balance and the
+internal ledger balance: timing differences, unrecorded fees, unmatched items.
+
+### Reasoning Examples
+
+Why doesn't our bank balance match the ledger?
+Which bank transactions don't match any recorded payment?
+Reconcile the main account for June.
+
+## Domain 6 — Fixed Assets & Depreciation
+
+### Business Context
+
+Companies track equipment cost, depreciation, and book value.
+
+Depreciation is computed, not stored. The service computes it from the simulation
+date, the depreciation method, and the useful life.
+
+### Capabilities
+
+get_fixed_assets(asset_class?, department_id?, status?)
+
+Returns the asset register with computed accumulated depreciation and net book value.
+
+get_depreciation_schedule(asset_id?, period?)
+
+Returns period-by-period depreciation for an asset or for the whole register.
+
+get_asset_book_value(asset_id_or_class)
+
+Returns current net book value.
+
+find_fully_depreciated_assets(still_in_use_only?)
+
+Returns assets whose accumulated depreciation has reached cost minus salvage value —
+a common source of accounting cleanup work, and a planted anomaly in the simulator.
+
+### Reasoning Examples
+
+What's the book value of our IT equipment?
+Which assets are fully depreciated but still in use?
+How much depreciation will we book this quarter?
+
+---
+
+# Chapter 23 — Phase C Domains
+
+## Domain 7 — Payroll Analysis
+
+### Business Context
+
+Payroll execution belongs to a payroll system. Payroll *analysis* belongs to finance,
+and it is asked about constantly.
+
+This domain is read-only and analytical. The assistant never runs payroll.
+
+### Capabilities
+
+get_payroll_summary(period?, department_id?)
+
+Returns gross, deductions, and net totals by period and department.
+
+get_payroll_cost_by_department(period?, fiscal_year?)
+
+Returns headcount cost by department, with comparison to prior periods.
+
+get_headcount(department_id?, as_of_date?)
+
+Returns active headcount, joiners, and leavers.
+
+get_overtime_analysis(department_id?, period?)
+
+Returns overtime cost and the employees or departments driving it.
+
+### Accuracy Requirement
+
+Payroll figures are sensitive. Phase 2 must state the period and scope of every
+payroll figure it reports, and must never aggregate across periods unless the tool
+returned an aggregate. Individual salary disclosure is limited to what the tool
+returns; the assistant must not infer or estimate individual pay.
+
+## Domain 8 — Procurement & Requisitions
+
+### Business Context
+
+Before a purchase order exists, someone requests a purchase and someone approves it.
+
+Weak procurement control shows up as maverick spend: purchase orders with no
+requisition, or the same product bought from different vendors at different prices.
+
+### Capabilities
+
+get_purchase_requisitions(department_id?, status?, requester_id?, date_from?,
+date_to?)
+
+Returns requisitions with their approval state.
+
+get_pending_requisition_approvals(older_than_days?)
+
+Returns requisitions stuck in approval, sorted by age.
+
+get_vendor_performance(vendor_id?)
+
+Returns on-time delivery rate, price consistency, invoice accuracy (disputes and
+duplicates), and order volume.
+
+compare_vendor_pricing(product_id)
+
+Returns the unit prices paid to different vendors for the same product, exposing
+price inconsistency.
+
+find_maverick_purchase_orders(date_from?, date_to?)
+
+Returns purchase orders raised without an approved requisition.
+
+### Reasoning Examples
+
+Which requisitions are stuck in approval?
+Are we buying the same product from multiple vendors at different prices?
+Which vendors deliver late most often?
+
+## Domain 9 — Financial Close Management
+
+### Business Context
+
+Month-end close is the largest recurring grind in finance. Teams work through a
+checklist under time pressure and constantly ask: what's left, and what's blocking us.
+
+### Capabilities
+
+get_close_status(period?)
+
+Returns the state of a close period: open, in progress, or closed, with completion
+percentage.
+
+get_open_close_tasks(period?, owner_id?, category?)
+
+Returns outstanding tasks with owners, due dates, and blocking reasons.
+
+get_close_blockers(period?)
+
+Returns only the tasks that are blocked, with their stated reasons and what they are
+blocking.
+
+check_period_readiness(period)
+
+Runs deterministic readiness checks: unposted invoices, unreconciled bank accounts,
+unapproved expense claims, incomplete tasks. Returns a structured readiness report.
+
+### Reasoning Examples
+
+What's still open for June close?
+Are we ready to close the books?
+What's blocking the close?
+
+## Domain 10 — Tax & Compliance Reporting
+
+### Business Context
+
+Finance must know how much tax was collected on sales, how much was paid on
+purchases, what the net position is, and when filings are due.
+
+### Capabilities
+
+get_tax_summary(jurisdiction?, period?)
+
+Returns tax collected on sales, tax paid on purchases, and net payable or
+recoverable, computed from underlying invoices.
+
+get_tax_filing_status(jurisdiction?, fiscal_year?)
+
+Returns filing periods, due dates, and whether each has been filed.
+
+get_taxable_transactions(jurisdiction?, period?, category?)
+
+Returns the underlying transactions that make up a tax position, so the figure is
+auditable and explainable.
+
+### Accuracy Requirement
+
+Tax figures carry regulatory consequence.
+
+Phase 2 must present tax figures with their period, jurisdiction, and basis of
+computation, and must state that figures are derived from the recorded transactions
+and are not a substitute for a filed return. The assistant must never estimate a tax
+figure that the tool did not return.
+
+## Domain 11 — Audit Support & Internal Controls
+
+### Business Context
+
+Auditors and controllers ask control questions that take finance teams days to answer
+manually.
+
+This domain is where the assistant's value is most visible, because the answers are
+tedious to produce and important to get right.
+
+### Capabilities
+
+get_transaction_audit_trail(entity_type, entity_id)
+
+Returns who created a transaction, who approved it, and when.
+
+find_segregation_of_duties_violations(date_from?, date_to?)
+
+Returns transactions where the creator and the approver are the same person.
+
+find_missing_approvals(threshold_amount?, date_from?, date_to?)
+
+Returns transactions above an approval threshold with no recorded approver.
+
+find_unusual_transactions(date_from?, date_to?)
+
+Returns transactions that breach deterministic control rules: round-number amounts
+above a threshold, payments just below an approval threshold, weekend or
+out-of-hours postings, or amounts far outside a vendor's historical range. The rules
+are explicit, documented, and deterministic. This is not anomaly detection by the
+model; it is rule-based control testing, explained by the model.
+
+get_control_exceptions_summary(period?)
+
+Returns a consolidated summary of all control exceptions for a period.
+
+### Reasoning Examples
+
+Show all payments over ten thousand without a matching purchase order.
+Did anyone approve their own expense claim?
+Which transactions look unusual this quarter?
+
+---
+
+# Chapter 24 — Tool Selection at Scale
+
+## Purpose
+
+The assistant will expose roughly fifty tools once the expansion is complete.
+
+Chapter 10 warned that large tool sets degrade planning. This chapter defines how to
+detect and correct that degradation.
+
+## The Baseline Rule
+
+Before any domain is added, tool-selection accuracy is measured on the existing
+evaluation suite and recorded.
+
+After the domain is added, accuracy is measured again on the full suite.
+
+A drop in accuracy on previously passing cases is a regression and must be fixed
+before the milestone is accepted.
+
+The evaluation framework is the gate. Not judgment. Not demonstration.
+
+## Failure Mode 1 — Semantic Collision
+
+Two tools answer superficially similar questions.
+
+Example collisions to expect:
+
+get_expense_summary_by_department versus get_department_spending versus
+get_budget_vs_actual.
+
+get_cash_position versus forecast_cash_flow.
+
+get_expense_claims versus get_expense_policy_violations.
+
+Mitigation: tool descriptions must include an explicit disambiguation clause naming
+the sibling tool and the distinction. Descriptions are versioned artifacts and are
+regression-tested like prompts.
+
+## Failure Mode 2 — Planner Overload
+
+The planner receives too many tool specifications and selects poorly, or times out.
+
+Mitigation: domain routing.
+
+## Domain Routing Architecture
+
+Routing inserts one lightweight step before Phase 1 planning.
+
+User message
+    ↓
+Domain Router (fast, cheap classification)
+    ↓
+Selected domain(s): e.g. [expenses, budgets]
+    ↓
+Phase 1 Planner — receives only the tools from the selected domains, plus a small
+set of always-available cross-domain tools
+    ↓
+Tool Executor (unchanged)
+    ↓
+Phase 2 Response Generator (unchanged)
+
+Design rules:
+
+The router may select more than one domain. Cross-domain questions are common
+("can we afford next month's payroll" spans cash flow and payroll).
+
+The router must be permissive. When uncertain, it returns more domains rather than
+fewer. A false narrow is a failed answer; a false wide is only slightly slower.
+
+Always-available tools (date resolution, customer and vendor lookup) are never routed
+away.
+
+Routing is an optimization, not a semantic layer. If routing is removed, the system
+must still work — only more slowly and less accurately.
+
+Routing is introduced only when evaluation shows it is needed. It is designed in
+advance so that adopting it is a configuration change, not a rewrite.
+
+## Structured Planning Output
+
+Given a smaller LLM, planning output must be strictly constrained.
+
+The planner returns one of exactly three structured shapes:
+
+A clarification request.
+An ordered list of tool calls with validated parameters.
+A direct answer, for conversational messages requiring no data.
+
+Any output that fails schema validation triggers one bounded retry with an explicit
+error message. A second failure returns a graceful clarification to the user. The
+system never guesses on behalf of the model.
+
+## Deterministic Date Resolution
+
+Relative dates ("last quarter," "this month," "year to date") must not be resolved by
+the model.
+
+A resolve_date_range(expression) tool performs the arithmetic against the simulation
+date and returns explicit start and end dates.
+
+This removes an entire class of silent parameter errors.
+
+---
+
+# Chapter 25 — Evaluation Expansion
+
+## Purpose
+
+Chapter 8 of the roadmap established the evaluation framework.
+
+The expansion multiplies the surface area the framework must cover.
+
+## Coverage Requirements
+
+Every domain must have, at minimum:
+
+Five phrasing-variation cases (the same intent expressed five different ways).
+Two parameter-extraction cases (dates, amounts, names, enums).
+One ambiguity case that must produce a clarifying question.
+One hallucination trap.
+One cross-domain reasoning case.
+
+Eleven domains therefore add at least one hundred evaluation cases.
+
+## Metrics
+
+The scorecard must report, per domain and overall:
+
+Tool-selection accuracy.
+Parameter-extraction accuracy.
+Clarification appropriateness (asked when it should, did not ask when it should not).
+Hallucination rate (any figure in the answer absent from tool output).
+Memory usage accuracy (follow-up reference resolution).
+Refusal correctness (write requests declined and explained).
+Latency, per phase.
+
+## Expectations Are Derived, Not Hardcoded
+
+Expected answers must be derived from the seed expectations file produced by the
+simulator (Chapter 19), not hardcoded into the evaluation cases.
+
+If the seed changes, expectations regenerate. Evaluation cases remain valid.
+
+Hardcoded expected values are technical debt that silently rots.
+
+## Hallucination Traps
+
+Every domain requires at least one trap. Examples:
+
+Ask about an expense claim ID that does not exist.
+Ask for the budget of a department that has no budget line.
+Ask for a bank reconciliation for a period with no transactions.
+Ask for the tax position of a jurisdiction the company is not registered in.
+Ask for payroll for a future period.
+
+The correct behavior in every case is an honest statement that the data does not
+exist. Any invented figure is a failing result, regardless of how plausible it is.
+
+## Regression Gate
+
+The evaluation suite runs in CI.
+
+A pull request that reduces tool-selection accuracy, raises hallucination rate, or
+breaks a previously passing case cannot be merged.
+
+Prompt changes and tool-description changes are treated identically to code changes.
+
+---
+
+# Chapter 26 — Guardrails for the Expanded Assistant
+
+## Read-Only Enforcement
+
+The expanded assistant handles payroll, tax, and audit data. The blast radius of a
+mistaken action is much larger than it was for invoice queries.
+
+Enforcement is architectural, not merely instructional:
+
+No tool in the registry performs a write operation.
+The repository layer used by tools exposes read methods only.
+A registry-level assertion fails the application at startup if any registered tool
+declares a write capability.
+
+Prompt instructions are the last line of defense, not the first.
+
+## Refusal Behavior
+
+When a user requests an action the assistant cannot take ("approve this claim,"
+"pay this invoice," "file the return"), the assistant must:
+
+Decline clearly.
+Explain that it can analyze and recommend but not execute.
+Offer the analysis that supports the action.
+
+Never invent a capability. Chapter 3, Principle 2 is unchanged: if a capability does
+not exist as a tool, it does not exist.
+
+## Sensitive Domain Handling
+
+Payroll, tax, and audit answers must always state:
+
+The period covered.
+The scope (which department, jurisdiction, or entity).
+That figures are derived from recorded transactions.
+
+The assistant must never estimate, extrapolate, or fill a gap in these domains. If
+the tool returned no data, the answer is that there is no data.
+
+## Data Minimization
+
+Individual salary information is returned only when the question is explicitly about
+an individual and the tool returns it. Aggregate questions receive aggregate answers.
+
+## Explanation Requirement
+
+For every analytical answer — variance, reconciliation, risk, prioritization, control
+exceptions — the assistant must explain how the conclusion follows from the data it
+retrieved.
+
+An unexplained analytical answer is a failed answer, even when the number is correct.
+Finance professionals must be able to verify reasoning, not just receive conclusions.
+
+---
+
+# Chapter 27 — Expansion Roadmap & Milestones
+
+## Guiding Principle (Unchanged)
+
+The application must always be demonstrable.
+
+Every milestone ends with a running application, a passing test suite, and a passing
+evaluation suite.
+
+## Milestone 11 — Simulator v2 & Schema Foundation
+
+Goal: the simulated company becomes a complete business.
+
+Deliverables:
+
+All new tables from Chapter 20 (Phases A, B, and C), migrated.
+Structured company policies as data.
+Configurable simulation date.
+Extended seed generator producing all entities at the scale defined in Chapter 19.
+All consistency invariants asserted by the check script.
+All planted anomalies present and recorded in a machine-readable expectations file.
+Read-only repositories for every new entity.
+
+No new tools. No AI changes. The assistant continues to work exactly as before.
+
+This milestone is deliberately AI-free. It de-risks everything that follows.
+
+## Milestone 12 — Phase A Domains
+
+Goal: Expense Management, Credit Management, Cash Flow Forecasting.
+
+Deliverables:
+
+Services and tools for all three domains.
+Deterministic date-range resolution tool.
+Tool descriptions with explicit disambiguation clauses.
+Planner prompt updated and version-bumped.
+Baseline tool-selection accuracy recorded before the change, and re-measured after.
+At least thirty new evaluation cases.
+
+Acceptance: all three domains answer accurately in the UI, and no previously passing
+evaluation case regresses.
+
+## Milestone 13 — Phase B Domains
+
+Goal: Budgets and FP&A, Bank Reconciliation, Fixed Assets.
+
+Deliverables:
+
+Services and tools for all three domains.
+Actuals always computed, never stored.
+Depreciation always computed from the simulation date.
+Deterministic reconciliation matching algorithm.
+At least thirty new evaluation cases.
+Tool-selection accuracy measured against the Milestone 12 baseline.
+
+Acceptance: variance analysis explains causes, reconciliation identifies the seeded
+unmatched transactions exactly, and asset book values are correct.
+
+## Milestone 14 — Tool Selection at Scale
+
+Goal: keep planning accurate as the tool set approaches fifty.
+
+Deliverables:
+
+Domain router implemented behind a configuration flag.
+Structured planning output with schema validation and bounded retry.
+Accuracy measured with routing on and routing off.
+Routing enabled only if it demonstrably improves accuracy or latency.
+Disambiguation clauses reviewed across every tool description.
+
+Acceptance: full-suite tool-selection accuracy meets or exceeds the pre-expansion
+baseline.
+
+## Milestone 15 — Phase C Domains
+
+Goal: Payroll Analysis, Procurement, Financial Close, Tax, Audit Support.
+
+Deliverables:
+
+Services and tools for all five domains.
+Sensitive-domain response constraints enforced in the Phase 2 prompt.
+Registry-level read-only assertion enforced at startup.
+Refusal behavior for write requests, with evaluation cases proving it.
+At least fifty new evaluation cases, including one hallucination trap per domain.
+
+Acceptance: all eleven domains answer accurately, control questions return the exact
+planted anomalies, and every write request is correctly refused and explained.
+
+## Milestone 16 — Expansion Complete
+
+Goal: audit, harden, document.
+
+Deliverables:
+
+Full evaluation suite green, with a per-domain scorecard.
+Architecture audit: no SQL outside repositories, no business rules in tools or
+endpoints, no policies in prompts, no keyword matching anywhere.
+Latency profile per phase, with indexes verified for every analytical query.
+Documentation for all eleven domains.
+ADRs for domain routing, computed-not-stored actuals, and read-only enforcement.
+Demo script covering one question from each of the eleven domains.
+
+Acceptance: a finance professional can ask a question from any domain and receive an
+accurate, explained, verifiable answer on localhost.
