@@ -9,6 +9,7 @@ def test_registry_includes_all_registered_tools() -> None:
     names = {spec.name for spec in registry.list_specs()}
     assert names == {
         "get_current_date",
+        "resolve_date_range",
         "get_unpaid_invoices",
         "search_invoices",
         "get_overdue_invoices",
