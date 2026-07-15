@@ -609,17 +609,17 @@ async def _check_v2(  # noqa: PLR0915
             add_actual(claim.department_id, claim.category, claim.amount)
     for run in payroll_runs:
         for line_row in lines_by_run.get(run.id, []):
-            employee = employees_by_id.get(line_row.employee_id)
-            if employee is not None:
+            line_employee = employees_by_id.get(line_row.employee_id)
+            if line_employee is not None:
                 add_actual(
-                    employee.department_id, "payroll",
+                    line_employee.department_id, "payroll",
                     line_row.base_salary + line_row.overtime + line_row.bonus,
                 )
     for po in purchase_orders_all:
         if po.status in ("approved", "received") and po.created_by_employee_id is not None:
-            employee = employees_by_id.get(po.created_by_employee_id)
-            if employee is not None:
-                add_actual(employee.department_id, "procurement", po.total_amount)
+            creator = employees_by_id.get(po.created_by_employee_id)
+            if creator is not None:
+                add_actual(creator.department_id, "procurement", po.total_amount)
 
     over_departments = sorted(
         department_names[dept_id]
@@ -646,11 +646,11 @@ async def _check_v2(  # noqa: PLR0915
             violations.append(f"Under-budget department {under_expected} does not exist")
         else:
             actual = actual_by_dept.get(dept_id, Decimal("0"))
-            budget = budget_by_dept.get(dept_id, Decimal("0"))
-            if budget == 0 or actual / budget > Decimal("0.7"):
+            budget_total = budget_by_dept.get(dept_id, Decimal("0"))
+            if budget_total == 0 or actual / budget_total > Decimal("0.7"):
                 violations.append(
                     f"Department {under_expected} is not materially under budget "
-                    f"(actual {actual}, budget {budget})"
+                    f"(actual {actual}, budget {budget_total})"
                 )
     overspend = expectations.get("category_overspend", {})
     if overspend:
@@ -664,11 +664,11 @@ async def _check_v2(  # noqa: PLR0915
         category = overspend.get("category")
         if dept_id is not None and category:
             actual = actual_by_dept_category.get((dept_id, category), Decimal("0"))
-            budget = budget_by_dept_category.get((dept_id, category), Decimal("0"))
-            if actual <= budget:
+            budget_total = budget_by_dept_category.get((dept_id, category), Decimal("0"))
+            if actual <= budget_total:
                 violations.append(
                     f"Planted category overspend {overspend} not present "
-                    f"(actual {actual}, budget {budget})"
+                    f"(actual {actual}, budget {budget_total})"
                 )
 
     # -- fixed assets ------------------------------------------------------------
@@ -758,13 +758,13 @@ async def _check_v2(  # noqa: PLR0915
         if po.requisition_id is None:
             maverick_found.add(po.po_number)
         else:
-            requisition = requisitions_by_id.get(po.requisition_id)
-            if requisition is None:
+            traced_requisition = requisitions_by_id.get(po.requisition_id)
+            if traced_requisition is None:
                 violations.append(f"PO {po.po_number} references missing requisition")
-            elif requisition.status not in ("approved", "converted"):
+            elif traced_requisition.status not in ("approved", "converted"):
                 violations.append(
                     f"PO {po.po_number} traces to a requisition in status "
-                    f"{requisition.status!r}"
+                    f"{traced_requisition.status!r}"
                 )
     if maverick_found != maverick_expected:
         violations.append(
@@ -775,19 +775,19 @@ async def _check_v2(  # noqa: PLR0915
     po_by_number = {po.po_number: po for po in purchase_orders_all}
     po_items = (await db.execute(select(PurchaseOrderItemModel))).scalars().all()
     items_by_po_id: dict[uuid.UUID, list[PurchaseOrderItemModel]] = {}
-    for item in po_items:
-        items_by_po_id.setdefault(item.purchase_order_id, []).append(item)
+    for po_item in po_items:
+        items_by_po_id.setdefault(po_item.purchase_order_id, []).append(po_item)
     for entry in expectations.get("price_variance_products", []):
         prices = []
         for purchase in entry.get("purchases", []):
-            po = po_by_number.get(purchase["po_number"])
-            if po is None:
+            variance_po = po_by_number.get(purchase["po_number"])
+            if variance_po is None:
                 violations.append(
                     f"Price-variance PO {purchase['po_number']} does not exist"
                 )
                 continue
-            for item in items_by_po_id.get(po.id, []):
-                prices.append(item.unit_price)
+            for po_item in items_by_po_id.get(variance_po.id, []):
+                prices.append(po_item.unit_price)
         if len(prices) >= 2:
             low, high = min(prices), max(prices)
             if low == 0 or high / low < Decimal("1.25"):
@@ -853,11 +853,11 @@ async def _check_v2(  # noqa: PLR0915
             lateness: list[int] = []
             unpaid: list[str] = []
             for inv in customer_invoices:
-                payment = payments_by_invoice_id.get(inv.id)
-                if payment is None:
+                matched_payment = payments_by_invoice_id.get(inv.id)
+                if matched_payment is None:
                     unpaid.append(inv.invoice_number)
                 else:
-                    lateness.append((payment.payment_date - inv.due_date).days)
+                    lateness.append((matched_payment.payment_date - inv.due_date).days)
             if sorted(unpaid) != sorted(deteriorating.get("unpaid_invoice_numbers", [])):
                 violations.append(
                     f"Deteriorating customer unpaid invoices {unpaid} != expectations"

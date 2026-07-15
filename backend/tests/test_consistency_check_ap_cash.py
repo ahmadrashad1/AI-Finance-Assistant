@@ -7,7 +7,12 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domains.finance.models import BankAccountModel, CashTransactionModel, PaymentModel
+from domains.finance.models import (
+    BankAccountModel,
+    BankTransactionModel,
+    CashTransactionModel,
+    PaymentModel,
+)
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
 from domains.finance.repositories.vendor_invoice_repository import VendorInvoiceRepository
@@ -15,17 +20,21 @@ from domains.finance.repositories.vendor_payment_repository import VendorPayment
 from domains.finance.repositories.vendor_repository import VendorRepository
 from domains.finance.simulator.consistency_check import run_consistency_check
 from domains.finance.simulator.generator import SimulatorSeeder
+from domains.finance.simulator.generator_v2 import SimulatorSeederV2
 
 
 @pytest.mark.asyncio
 async def test_freshly_seeded_data_has_zero_ap_cash_violations(
     clean_db: None, db_session: AsyncSession
 ) -> None:
-    seeder = SimulatorSeeder(db_session, seed=42)
-    await seeder.seed()
+    # The consistency checker validates a complete company (PRD Ch.19), so
+    # both seeding phases run here -- v1 alone no longer satisfies invariants
+    # like "18 payroll runs exist".
+    await SimulatorSeeder(db_session, seed=42).seed()
+    expectations = await SimulatorSeederV2(db_session, seed=42).seed()
     await db_session.commit()
 
-    violations = await run_consistency_check(db_session)
+    violations = await run_consistency_check(db_session, expectations)
     assert violations == []
 
 
@@ -87,6 +96,14 @@ async def test_detects_orphan_cash_transaction(clean_db: None, db_session: Async
 async def test_detects_vendor_payment_repository_record_payment_paid_in_full(
     clean_db: None, db_session: AsyncSession
 ) -> None:
+    # As above: seed the complete company first so the v2 structural
+    # invariants (payroll runs, close periods, tax periods...) are satisfied,
+    # then layer one more fully-recorded vendor payment on top and confirm it
+    # introduces no violations of its own.
+    await SimulatorSeeder(db_session, seed=42).seed()
+    expectations = await SimulatorSeederV2(db_session, seed=42).seed()
+    await db_session.commit()
+
     vendor_repo = VendorRepository(db_session)
     vendor = await vendor_repo.create(
         vendor_code="VEND-8101", company_name="Test Vendor", category="raw_materials",
@@ -119,7 +136,19 @@ async def test_detects_vendor_payment_repository_record_payment_paid_in_full(
             transaction_type="vendor_payment", vendor_payment_id=vendor_payment.id,
         )
     )
+    # The bank-statement side (finance.bank_transactions) is a separate
+    # ledger from the internal cash_transactions above (PRD Ch.20 Phase B);
+    # a "fully recorded" payment needs both, or the v2 reconciliation
+    # invariant reports it as an internal payment the bank never saw.
+    db_session.add(
+        BankTransactionModel(
+            id=uuid.uuid4(), bank_account_id=account.id,
+            transaction_date=vendor_payment.payment_date, description="Outgoing payment VINV-8101",
+            amount=-vendor_payment.amount, transaction_type="vendor_payment",
+            matched_vendor_payment_id=vendor_payment.id, match_status="matched",
+        )
+    )
     await db_session.commit()
 
-    violations = await run_consistency_check(db_session)
+    violations = await run_consistency_check(db_session, expectations)
     assert violations == []

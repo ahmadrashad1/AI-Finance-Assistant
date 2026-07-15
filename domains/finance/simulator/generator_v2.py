@@ -54,7 +54,6 @@ from domains.finance.simulator.constants import (
     BUDGET_CATEGORIES,
     DEFAULT_SEED,
     DEPRECIATION_POLICIES,
-    EMPLOYEE_GRADES,
     EXPENSE_LIMITS,
     INVOICE_WINDOW_MONTHS,
     MONTHLY_ACCOUNT_FEE,
@@ -515,14 +514,11 @@ class SimulatorSeederV2:
                 )
             ).scalars().all()
         )
-        po_items = (
-            await self._db.execute(
-                select(PurchaseOrderItemModel, ProductModel.sku)
-                .join(ProductModel, PurchaseOrderItemModel.product_id == ProductModel.id)
-            )
-        ).all()
+        po_items = list(
+            (await self._db.execute(select(PurchaseOrderItemModel))).scalars().all()
+        )
         items_by_po: dict[uuid.UUID, list[PurchaseOrderItemModel]] = {}
-        for item, sku in sorted(po_items, key=lambda pair: (str(pair[0].purchase_order_id), pair[1])):
+        for item in sorted(po_items, key=lambda i: str(i.purchase_order_id)):
             items_by_po.setdefault(item.purchase_order_id, []).append(item)
         products = list(
             (await self._db.execute(select(ProductModel).order_by(ProductModel.sku)))
@@ -594,7 +590,8 @@ class SimulatorSeederV2:
         for product in variance_products:
             chosen_vendors = self._rng.sample(vendors, 2)
             purchases = []
-            for vendor, factor in zip(chosen_vendors, (Decimal("0.90"), Decimal("1.35")), strict=True):
+            price_factors = (Decimal("0.90"), Decimal("1.35"))
+            for vendor, factor in zip(chosen_vendors, price_factors, strict=True):
                 po_number += 1
                 unit_price = _q(product.unit_price * factor)
                 quantity = self._rng.randint(5, 20)
@@ -678,12 +675,14 @@ class SimulatorSeederV2:
             estimated_amount = _q(
                 sum((price * qty for _, qty, price in item_specs), start=Decimal("0"))
             )
-            approver = None
-            approved_date = None
+            standalone_approver: EmployeeModel | None = None
+            standalone_approved_date: date | None = None
             if status in ("approved", "rejected"):
-                approver = self._approver_for(employees, requester)
+                standalone_approver = self._approver_for(employees, requester)
             if status == "approved":
-                approved_date = requested_date + timedelta(days=self._rng.randrange(1, 6))
+                standalone_approved_date = requested_date + timedelta(
+                    days=self._rng.randrange(1, 6)
+                )
             requisition = PurchaseRequisitionModel(
                 id=uuid.uuid4(),
                 requisition_number=f"REQ-{requisition_number}",
@@ -694,8 +693,8 @@ class SimulatorSeederV2:
                 justification=self._rng.choice(REQUISITION_JUSTIFICATIONS),
                 estimated_amount=estimated_amount,
                 status=status,
-                approver_id=approver.id if approver else None,
-                approved_date=approved_date,
+                approver_id=standalone_approver.id if standalone_approver else None,
+                approved_date=standalone_approved_date,
             )
             self._db.add(requisition)
             await self._db.flush()
@@ -1676,10 +1675,7 @@ class SimulatorSeederV2:
                 "in_progress", "blocked", "blocked",
             ]
             for task_index, (task_name, category) in enumerate(CLOSE_TASK_TEMPLATE):
-                if is_open:
-                    status = open_statuses[task_index]
-                else:
-                    status = "completed"
+                status = open_statuses[task_index] if is_open else "completed"
                 completed_date = None
                 blocking_reason = None
                 if status == "completed":

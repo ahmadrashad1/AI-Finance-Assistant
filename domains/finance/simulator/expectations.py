@@ -22,4 +22,5 @@ def write_expectations(
 
 
 def load_expectations(path: Path = DEFAULT_EXPECTATIONS_PATH) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    result: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return result

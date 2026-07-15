@@ -18,7 +18,9 @@ async def test_run_seed_populates_customers(clean_db: None, db_session: AsyncSes
         count = (
             await verify_session.execute(select(func.count()).select_from(CustomerModel))
         ).scalar_one()
-    assert count == 25
+    # 25 v1 customers + the deteriorating customer planted by the v2 phase
+    # (PRD Ch.19; every real seed run is v1 + v2 together).
+    assert count == 26
 
 
 @pytest.mark.asyncio
