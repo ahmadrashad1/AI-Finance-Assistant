@@ -3,11 +3,13 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
+from domains.finance.simulation import simulation_today
+
 # Fixed anchor -- never datetime.now()/date.today() anywhere in this package.
-# See design spec S3: re-running the same seed must always produce the same
-# data, including which invoices count as overdue, regardless of the real
-# calendar date on the machine running it.
-SIMULATION_TODAY: date = date(2026, 7, 8)
+# Resolved once at import from the platform-wide simulation date
+# (domains.finance.simulation), so the seeder, the consistency check, and the
+# services all agree on the same "today" (PRD Ch.19, Simulation Date).
+SIMULATION_TODAY: date = simulation_today()
 DEFAULT_SEED: int = 42
 
 NUM_CUSTOMERS = 25

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
@@ -9,6 +9,7 @@ from typing import Final
 from domains.finance.repositories.cash_repository import CashRepository
 from domains.finance.repositories.vendor_invoice_repository import VendorInvoiceRepository
 from domains.finance.repositories.vendor_repository import VendorRepository
+from domains.finance.simulation import simulation_today
 
 OUTSTANDING_VENDOR_INVOICE_STATUSES: Final[tuple[str, ...]] = ("sent", "partially_paid", "overdue")
 
@@ -82,7 +83,7 @@ class VendorService:
         )
 
     async def get_cash_position(self, as_of: date | None = None) -> CashPosition:
-        effective_as_of = as_of if as_of is not None else date.today()
+        effective_as_of = as_of if as_of is not None else simulation_today()
         balance = await self._cash_repository.get_balance_as_of(effective_as_of)
         return CashPosition(balance=balance, as_of_date=effective_as_of)
 
@@ -96,7 +97,7 @@ class VendorService:
                 raise ValueError(f"Vendor not found: {vendor_id}")
             resolved_vendor_id = vendor.id
 
-        effective_as_of = as_of if as_of is not None else date.today()
+        effective_as_of = as_of if as_of is not None else simulation_today()
 
         invoices = await self._vendor_invoice_repository.list_by_statuses(
             statuses=OUTSTANDING_VENDOR_INVOICE_STATUSES, vendor_id=resolved_vendor_id

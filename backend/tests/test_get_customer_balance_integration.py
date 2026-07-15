@@ -1,6 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
@@ -9,12 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_platform.tool_registry.registry import ToolContext
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
+from domains.finance.simulation import simulation_today
 from domains.finance.tools.get_customer_balance import (
     GetCustomerBalanceParams,
     get_customer_balance_handler,
 )
 
-TODAY = date.today()
+TODAY = simulation_today()
 
 
 async def _make_customer(db_session: AsyncSession, code: str, name: str) -> object:

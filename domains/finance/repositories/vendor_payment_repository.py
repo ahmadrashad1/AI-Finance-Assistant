@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import uuid
 from datetime import date
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.finance.models import VendorInvoiceModel, VendorPaymentModel
 from domains.finance.repositories.vendor_invoice_repository import compute_vendor_invoice_status
+from domains.finance.simulation import simulation_today
 
 
 class VendorPaymentRepository:
@@ -39,7 +40,7 @@ class VendorPaymentRepository:
         )
         self._db.add(payment)
 
-        as_of = today if today is not None else date.today()
+        as_of = today if today is not None else simulation_today()
         invoice.amount_paid = invoice.amount_paid + amount
         invoice.balance = invoice.total - invoice.amount_paid
         invoice.status = compute_vendor_invoice_status(

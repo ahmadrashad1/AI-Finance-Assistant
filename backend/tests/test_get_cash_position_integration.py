@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import uuid
 from datetime import date
@@ -11,6 +11,7 @@ from ai_platform.tool_registry.registry import ToolContext
 from domains.finance.models import BankAccountModel, CashTransactionModel, PaymentModel
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
+from domains.finance.simulation import simulation_today
 from domains.finance.tools.get_cash_position import GetCashPositionParams, get_cash_position_handler
 
 
@@ -29,7 +30,7 @@ async def test_seeded_db_returns_opening_balance_when_no_transactions(
     result = await get_cash_position_handler(GetCashPositionParams(), context)
 
     assert result.balance == Decimal("42000.00")
-    assert result.as_of_date == date.today()
+    assert result.as_of_date == simulation_today()
 
 
 @pytest.mark.asyncio
@@ -56,13 +57,13 @@ async def test_seeded_db_reflects_a_customer_payment_transaction(
         subtotal=Decimal("2500"), tax=Decimal("0"), total=Decimal("2500"),
     )
     payment = PaymentModel(
-        id=uuid.uuid4(), invoice_id=invoice.id, payment_date=date.today(),
+        id=uuid.uuid4(), invoice_id=invoice.id, payment_date=simulation_today(),
         amount=Decimal("2500"), payment_method="bank_transfer",
     )
     db_session.add(payment)
     db_session.add(
         CashTransactionModel(
-            id=uuid.uuid4(), bank_account_id=account.id, transaction_date=date.today(),
+            id=uuid.uuid4(), bank_account_id=account.id, transaction_date=simulation_today(),
             amount=Decimal("2500"), transaction_type="customer_payment", payment_id=payment.id,
         )
     )

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
@@ -8,6 +8,7 @@ from typing import Final
 
 from domains.finance.repositories.customer_repository import CustomerRepository
 from domains.finance.repositories.invoice_repository import InvoiceRepository
+from domains.finance.simulation import simulation_today
 
 UNPAID_STATUSES: Final[tuple[str, ...]] = ("sent", "partially_paid", "overdue")
 
@@ -112,7 +113,7 @@ class InvoiceService:
                 raise ValueError(f"Customer not found: {customer_id}")
             resolved_customer_id = customer.id
 
-        effective_as_of = as_of if as_of is not None else date.today()
+        effective_as_of = as_of if as_of is not None else simulation_today()
 
         invoices = await self._invoice_repository.list_by_statuses(
             statuses=UNPAID_STATUSES,
@@ -157,7 +158,7 @@ class InvoiceService:
                 raise ValueError(f"Customer not found: {customer_id}")
             resolved_customer_id = customer.id
 
-        effective_as_of = as_of if as_of is not None else date.today()
+        effective_as_of = as_of if as_of is not None else simulation_today()
 
         invoices = await self._invoice_repository.search(
             invoice_number=invoice_number,
@@ -199,7 +200,7 @@ class InvoiceService:
                 raise ValueError(f"Customer not found: {customer_id}")
             resolved_customer_id = customer.id
 
-        effective_as_of = as_of if as_of is not None else date.today()
+        effective_as_of = as_of if as_of is not None else simulation_today()
 
         invoices = await self._invoice_repository.list_by_statuses(
             statuses=("overdue",), customer_id=resolved_customer_id
@@ -245,7 +246,7 @@ class InvoiceService:
         )
 
     async def get_aging_report(self, *, as_of: date | None = None) -> AgingReport:
-        effective_as_of = as_of if as_of is not None else date.today()
+        effective_as_of = as_of if as_of is not None else simulation_today()
         invoices = await self._invoice_repository.list_by_statuses(statuses=UNPAID_STATUSES)
 
         totals: dict[str, Decimal] = {label: Decimal("0") for label in AGING_BUCKET_LABELS}
@@ -282,7 +283,7 @@ class InvoiceService:
                     due_date=invoice.due_date,
                     total=invoice.total,
                     balance=invoice.balance,
-                    days_outstanding=max(0, (date.today() - invoice.due_date).days),
+                    days_outstanding=max(0, (simulation_today() - invoice.due_date).days),
                     status=invoice.status,
                 )
                 for invoice in group

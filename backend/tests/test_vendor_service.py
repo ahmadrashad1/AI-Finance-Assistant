@@ -109,9 +109,11 @@ async def _make_bank_account(db_session: AsyncSession, opening_balance: Decimal)
 
 
 @pytest.mark.asyncio
-async def test_get_cash_position_defaults_as_of_to_today(
+async def test_get_cash_position_defaults_as_of_to_simulation_today(
     clean_db: None, db_session: AsyncSession
 ) -> None:
+    from domains.finance.simulation import simulation_today
+
     await _make_bank_account(db_session, Decimal("25000.00"))
     await db_session.commit()
 
@@ -119,7 +121,7 @@ async def test_get_cash_position_defaults_as_of_to_today(
 
     assert isinstance(position, CashPosition)
     assert position.balance == Decimal("25000.00")
-    assert position.as_of_date == date.today()
+    assert position.as_of_date == simulation_today()
 
 
 @pytest.mark.asyncio

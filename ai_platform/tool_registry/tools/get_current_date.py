@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from pydantic import BaseModel, ConfigDict
 
+from ai_platform.simulation_clock import simulation_today
 from ai_platform.tool_registry.registry import ToolContext, ToolSpec
 
 
@@ -19,8 +18,10 @@ class GetCurrentDateResult(BaseModel):
 async def get_current_date_handler(
     params: GetCurrentDateParams, context: ToolContext
 ) -> GetCurrentDateResult:
-    now = datetime.now(UTC)
-    return GetCurrentDateResult(date=now.date().isoformat(), day_of_week=now.strftime("%A"))
+    # "Today" is the platform simulation date, never the machine clock, so the
+    # assistant's sense of time always agrees with the simulated company data.
+    today = simulation_today()
+    return GetCurrentDateResult(date=today.isoformat(), day_of_week=today.strftime("%A"))
 
 
 GET_CURRENT_DATE_TOOL = ToolSpec(
