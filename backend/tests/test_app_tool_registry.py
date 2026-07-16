@@ -30,4 +30,8 @@ def test_registry_includes_all_registered_tools() -> None:
         "get_credit_exposure",
         "list_customers_over_credit_limit",
         "assess_credit_risk",
+        "get_expected_inflows",
+        "get_expected_outflows",
+        "forecast_cash_flow",
+        "get_payment_prioritization",
     }

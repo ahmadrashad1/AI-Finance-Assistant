@@ -8,18 +8,22 @@ from ai_platform.tool_registry.tools.resolve_date_range import RESOLVE_DATE_RANG
 from domains.finance.tools.assess_credit_risk import ASSESS_CREDIT_RISK_TOOL
 from domains.finance.tools.find_duplicate_expense_claims import FIND_DUPLICATE_EXPENSE_CLAIMS_TOOL
 from domains.finance.tools.find_duplicate_invoices import FIND_DUPLICATE_INVOICES_TOOL
+from domains.finance.tools.forecast_cash_flow import FORECAST_CASH_FLOW_TOOL
 from domains.finance.tools.get_aging_report import GET_AGING_REPORT_TOOL
 from domains.finance.tools.get_cash_position import GET_CASH_POSITION_TOOL
 from domains.finance.tools.get_credit_exposure import GET_CREDIT_EXPOSURE_TOOL
 from domains.finance.tools.get_customer import GET_CUSTOMER_TOOL
 from domains.finance.tools.get_customer_balance import GET_CUSTOMER_BALANCE_TOOL
 from domains.finance.tools.get_customer_payment_behavior import GET_CUSTOMER_PAYMENT_BEHAVIOR_TOOL
+from domains.finance.tools.get_expected_inflows import GET_EXPECTED_INFLOWS_TOOL
+from domains.finance.tools.get_expected_outflows import GET_EXPECTED_OUTFLOWS_TOOL
 from domains.finance.tools.get_expense_claims import GET_EXPENSE_CLAIMS_TOOL
 from domains.finance.tools.get_expense_policy_violations import GET_EXPENSE_POLICY_VIOLATIONS_TOOL
 from domains.finance.tools.get_expense_summary_by_department import (
     GET_EXPENSE_SUMMARY_BY_DEPARTMENT_TOOL,
 )
 from domains.finance.tools.get_overdue_invoices import GET_OVERDUE_INVOICES_TOOL
+from domains.finance.tools.get_payment_prioritization import GET_PAYMENT_PRIORITIZATION_TOOL
 from domains.finance.tools.get_pending_expense_approvals import GET_PENDING_EXPENSE_APPROVALS_TOOL
 from domains.finance.tools.get_unpaid_invoices import GET_UNPAID_INVOICES_TOOL
 from domains.finance.tools.get_vendor_balance import GET_VENDOR_BALANCE_TOOL
@@ -56,4 +60,8 @@ def get_tool_registry() -> ToolRegistry:
     registry.register(GET_CREDIT_EXPOSURE_TOOL)
     registry.register(LIST_CUSTOMERS_OVER_CREDIT_LIMIT_TOOL)
     registry.register(ASSESS_CREDIT_RISK_TOOL)
+    registry.register(GET_EXPECTED_INFLOWS_TOOL)
+    registry.register(GET_EXPECTED_OUTFLOWS_TOOL)
+    registry.register(FORECAST_CASH_FLOW_TOOL)
+    registry.register(GET_PAYMENT_PRIORITIZATION_TOOL)
     return registry
