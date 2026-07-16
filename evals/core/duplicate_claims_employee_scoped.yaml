@@ -1,0 +1,11 @@
+id: duplicate_claims_employee_scoped
+category: expense_parameter_extraction
+user_message: "Has EMP-0015 submitted any duplicate expense claims?"
+expectations:
+  expected_tools:
+    - tool: find_duplicate_expense_claims
+      parameters:
+        employee_id: "EMP-0015"
+  required_facts:
+    - "EXP-00182"
+    - "EXP-00339"

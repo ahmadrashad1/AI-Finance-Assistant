@@ -1,0 +1,8 @@
+id: expense_claims_sales_paraphrase
+category: expense_phrasing
+user_message: "Pull up the Sales department's expense report"
+expectations:
+  expected_tools:
+    - tool: get_expense_claims
+      parameters:
+        department_id: "Sales"

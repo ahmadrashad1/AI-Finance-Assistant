@@ -1,0 +1,12 @@
+id: policy_violations_quarter
+category: expense_phrasing
+user_message: "Show claims that break our travel policy this quarter"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "this quarter"
+    - tool: get_expense_policy_violations
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"

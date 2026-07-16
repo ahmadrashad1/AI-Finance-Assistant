@@ -1,0 +1,10 @@
+id: policy_violations_it
+category: expense_phrasing
+user_message: "Are there any policy violations in the IT department?"
+expectations:
+  expected_tools:
+    - tool: get_expense_policy_violations
+      parameters:
+        department_id: "IT"
+  required_facts:
+    - "EXP-00219"

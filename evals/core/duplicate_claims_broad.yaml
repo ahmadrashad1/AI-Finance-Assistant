@@ -1,0 +1,10 @@
+id: duplicate_claims_broad
+category: expense_phrasing
+user_message: "Is anyone submitting duplicate expense claims?"
+expectations:
+  expected_tools:
+    - tool: find_duplicate_expense_claims
+      parameters: {}
+  required_facts:
+    - "EXP-00182"
+    - "EXP-00339"
