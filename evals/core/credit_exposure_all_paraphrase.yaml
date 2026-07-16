@@ -1,0 +1,7 @@
+id: credit_exposure_all_paraphrase
+category: credit_phrasing
+user_message: "Show credit exposure for all our customers"
+expectations:
+  expected_tools:
+    - tool: get_credit_exposure
+      parameters: {}

@@ -1,0 +1,11 @@
+id: assess_risk_should_increase
+category: credit_phrasing
+user_message: "Should we increase Anchor Components' credit limit?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Anchor Components"
+    - tool: assess_credit_risk
+      parameters:
+        customer_id: "<piped>"

@@ -1,0 +1,7 @@
+id: over_limit_customers_paraphrase
+category: credit_phrasing
+user_message: "Which customers are over their credit limit?"
+expectations:
+  expected_tools:
+    - tool: list_customers_over_credit_limit
+      parameters: {}

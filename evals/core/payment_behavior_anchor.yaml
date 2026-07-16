@@ -1,0 +1,11 @@
+id: payment_behavior_anchor
+category: credit_phrasing
+user_message: "Is Anchor Components paying slower than they used to?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Anchor Components"
+    - tool: get_customer_payment_behavior
+      parameters:
+        customer_id: "<piped>"

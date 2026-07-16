@@ -1,0 +1,11 @@
+id: credit_ambiguous_fragment
+category: credit_ambiguity
+user_message: "Show credit exposure for Anchor"
+expectations:
+  expected_tools:
+    - tool: search_customers
+      parameters:
+        name_query: "Anchor"
+  required_facts:
+    - "Anchor Components"
+    - "Anchor Supply Co."

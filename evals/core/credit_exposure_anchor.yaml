@@ -1,0 +1,14 @@
+id: credit_exposure_anchor
+category: credit_phrasing
+user_message: "What's Anchor Components' credit exposure?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Anchor Components"
+    - tool: get_credit_exposure
+      parameters:
+        customer_id: "<piped>"
+  required_facts:
+    - "188446.50"
+    - "255000"
