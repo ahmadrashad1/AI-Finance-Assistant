@@ -1,0 +1,8 @@
+id: forecast_26_weeks_cap
+category: cashflow_parameter_extraction
+user_message: "Give me a 26-week cash flow projection"
+expectations:
+  expected_tools:
+    - tool: forecast_cash_flow
+      parameters:
+        weeks: 26

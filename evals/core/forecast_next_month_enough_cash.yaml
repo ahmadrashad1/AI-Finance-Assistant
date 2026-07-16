@@ -1,0 +1,8 @@
+id: forecast_next_month_enough_cash
+category: cashflow_phrasing
+user_message: "Will we have enough cash to cover the next month?"
+expectations:
+  expected_tools:
+    - tool: forecast_cash_flow
+      parameters:
+        weeks: 4

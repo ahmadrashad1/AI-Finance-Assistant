@@ -1,0 +1,7 @@
+id: payment_priority_paraphrase2
+category: cashflow_phrasing
+user_message: "What should we pay right now?"
+expectations:
+  expected_tools:
+    - tool: get_payment_prioritization
+      parameters: {}

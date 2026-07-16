@@ -1,0 +1,16 @@
+id: cross_domain_inflows_and_outflows
+category: cross_domain
+user_message: "How much do we expect to collect from customers and pay to vendors over the next 30 days?"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "next 30 days"
+    - tool: get_expected_inflows
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"
+    - tool: get_expected_outflows
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"
