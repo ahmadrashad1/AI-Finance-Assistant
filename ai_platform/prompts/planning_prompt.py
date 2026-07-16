@@ -1,6 +1,6 @@
 """Versioned system prompt for the Phase 1 planner.
 
-Version: 1.4.0
+Version: 1.5.0
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-07): Initial version. Three-branch planning contract
@@ -36,11 +36,27 @@ Changelog:
     with no explicit threshold ("recent", "lately") is exactly as
     ambiguous as an unqualified "show invoices" and needs a clarifying
     question.
+  - 1.5.0 (2026-07-16): Milestone 12 adds Phase A domains (Expense
+    Management, Credit Management, Cash Flow Forecasting) and a
+    deterministic resolve_date_range tool. Teaches: call
+    resolve_date_range first for any relative date expression rather
+    than compute one; disambiguation rules for the three new domains
+    against each other and against existing AR/AP/cash tools
+    (get_expense_claims vs get_expense_policy_violations vs
+    get_expense_summary_by_department; get_customer_payment_behavior vs
+    get_credit_exposure vs list_customers_over_credit_limit vs
+    assess_credit_risk, with assess_credit_risk's evidence-only
+    contract stated explicitly; get_cash_position vs forecast_cash_flow
+    vs get_expected_inflows/get_expected_outflows; get_unpaid_invoices
+    vs get_expected_inflows). Replaces the get_vendor_invoices +
+    get_cash_position payment-prioritization rule with a single
+    get_payment_prioritization call, now that a purpose-built tool
+    exists.
 """
 
 from __future__ import annotations
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-07): Initial version - three-branch planning contract "
@@ -59,6 +75,13 @@ CHANGELOG = [
     "paraphrase examples for get_aging_report/find_duplicate_invoices, a "
     "search_customers-vs-get_customer disambiguation rule (fragment name "
     "vs full name), and a vague-time-range clarification rule.",
+    "1.5.0 (2026-07-16): Add Phase A domains (Expense Management, "
+    "Credit Management, Cash Flow Forecasting) and resolve_date_range. "
+    "Teaches date-expression resolution, disambiguation across the "
+    "three new domains and against existing AR/AP/cash tools, "
+    "assess_credit_risk's evidence-only contract, and replaces the "
+    "get_vendor_invoices + get_cash_position payment-prioritization "
+    "rule with get_payment_prioritization.",
 ]
 
 PLANNING_SYSTEM_PROMPT_TEMPLATE = (
@@ -155,11 +178,52 @@ PLANNING_SYSTEM_PROMPT_TEMPLATE = (
     "would genuinely need more than 5, ask a clarifying question instead "
     "of planning a longer list.\n"
     "- 'Which invoices should I pay first?', 'What should we pay now?', "
-    "or any question weighing what to pay against available money has no "
-    "single tool that answers it - plan get_vendor_invoices and "
-    "get_cash_position together (they don't depend on each other, so no "
-    "$stepN.field piping is needed) so the response stage can reason over "
-    "both together.\n"
+    "or 'prioritize our vendor payments' now has a dedicated tool - plan "
+    "get_payment_prioritization (it returns available cash and a ranked "
+    "order together, so no other tool is needed). Only fall back to "
+    "combining get_vendor_invoices and get_cash_position when the user "
+    "wants the two raw lists with no ranking.\n"
+    "- Whenever the user's request uses a relative date expression "
+    "('last month', 'next quarter', 'YTD', 'last 30 days', 'next 8 "
+    "weeks', 'Q2 2025', etc.), call resolve_date_range first to turn it "
+    "into an explicit date_from/date_to, then pass those two dates into "
+    "whichever tool actually answers the question (e.g. "
+    "resolve_date_range then get_expense_claims). Never compute a date "
+    "range yourself - forecast_cash_flow is the one exception, since it "
+    "takes a plain integer weeks count, not a date range.\n"
+    "- Expense questions: get_expense_claims lists individual claims "
+    "(optionally filtered, including by an exact claim_number for a "
+    "single-claim lookup); get_expense_policy_violations returns only "
+    "claims that broke a policy (over limit, missing receipt, late "
+    "submission, or self-approved) - don't use get_expense_claims when "
+    "the user specifically wants policy breaches. "
+    "get_pending_expense_approvals is only for claims still awaiting "
+    "approval. get_expense_summary_by_department aggregates spend by "
+    "department and category - it does not compare against a budget. "
+    "find_duplicate_expense_claims looks for likely duplicate "
+    "submissions, not policy violations.\n"
+    "- Credit questions: get_customer_payment_behavior returns payment "
+    "history and trend only, no balance; get_credit_exposure returns "
+    "balance vs. credit limit for one customer (pass customer_id) or "
+    "every customer (omit it); list_customers_over_credit_limit is the "
+    "pre-filtered 'who's over limit' version of get_credit_exposure. "
+    "For a judgment question like 'should we increase/decrease Customer "
+    "X's credit limit?' or 'is Customer X a credit risk?', plan "
+    "assess_credit_risk - it returns evidence only, never a "
+    "recommendation, so you must reason over that evidence yourself in "
+    "the response.\n"
+    "- Cash flow questions: get_cash_position is today's actual balance "
+    "only, no projection; forecast_cash_flow projects a given number of "
+    "future weeks and is what 'will we have enough cash' or 'N-week "
+    "cash forecast' questions need. get_expected_inflows/"
+    "get_expected_outflows return the raw projected receipts/payments "
+    "for an explicit window (resolve one first if the user gave a "
+    "relative date) - use these instead of forecast_cash_flow when the "
+    "user only wants one side (inflows or outflows), not a full "
+    "period-by-period projection. get_expected_inflows is not the same "
+    "as get_unpaid_invoices - it projects a receipt date adjusted by "
+    "payment history, for a specific future window; get_unpaid_invoices "
+    "is the current, unadjusted list.\n"
     "- When a later step only needs a customer's business code (not their "
     "balance), select get_customer - not get_customer_balance, which "
     "computes an unpaid-invoice balance nobody asked for in that step.\n"
