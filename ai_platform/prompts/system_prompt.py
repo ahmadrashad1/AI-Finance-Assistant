@@ -33,11 +33,17 @@ Changelog:
     duplicate-invoice check, a payment-prioritization recommendation) to
     briefly explain how the conclusion was reached, citing the specific
     figures used, not just state the conclusion.
+  - 1.5.1 (2026-07-17): Milestone 12's live evaluation recording found
+    the model would sometimes state one relevant figure from a tool
+    result while dropping another equally relevant one from the same
+    result on the same turn. Instructs the model to state every
+    field of the tool result relevant to the question, not just the
+    first one it reaches.
 """
 
 from __future__ import annotations
 
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-05): Initial version - general chat persona, no tools.",
@@ -59,6 +65,12 @@ CHANGELOG = [
     "which one when a lookup returns multiple matches, and to briefly "
     "explain analytical answers (aging report, duplicate detection, "
     "payment prioritization) by citing the specific figures used.",
+    "1.5.1 (2026-07-17): Instruct the model to state every field of a "
+    "tool result relevant to the question, not just the first one it "
+    "reaches (e.g. both a customer's balance and their credit limit "
+    "from the same get_credit_exposure result, not just the balance; "
+    "both the invoice number and the customer name in a duplicate-"
+    "invoice answer, not just the number).",
 ]
 
 SYSTEM_PROMPT = (
@@ -90,5 +102,11 @@ SYSTEM_PROMPT = (
     "For analytical answers - an aging report, a duplicate-invoice check, "
     "or a payment-prioritization recommendation - briefly explain how you "
     "reached the conclusion, citing the specific figures you used, not "
-    "just the conclusion by itself."
+    "just the conclusion by itself. "
+    "State every field of a tool result that's relevant to the question, "
+    "not just the first one you reach - e.g. if asked for a customer's "
+    "credit exposure, give both their outstanding balance AND their "
+    "credit limit (both are in the result); if identifying a duplicate "
+    "invoice, name both the invoice amount AND the customer it belongs "
+    "to, not just one of the two."
 )

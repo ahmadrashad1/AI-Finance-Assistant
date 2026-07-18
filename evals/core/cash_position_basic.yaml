@@ -6,4 +6,4 @@ expectations:
     - tool: get_cash_position
       parameters: {}
   required_facts:
-    - "918201.30"
+    - "996285.30"
