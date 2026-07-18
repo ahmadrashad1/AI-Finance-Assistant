@@ -20,6 +20,6 @@ def test_tool_spec_wires_up_the_handler() -> None:
     from domains.finance.tools.get_customer import get_customer_handler
 
     assert GET_CUSTOMER_TOOL.name == "get_customer"
-    assert "not a business code" in GET_CUSTOMER_TOOL.description.lower()
+    assert "not a code" in GET_CUSTOMER_TOOL.description.lower()
     assert GET_CUSTOMER_TOOL.handler is get_customer_handler
     assert GET_CUSTOMER_TOOL.parameters_model is GetCustomerParams

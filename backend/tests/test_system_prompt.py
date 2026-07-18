@@ -2,7 +2,7 @@ from ai_platform.prompts.system_prompt import AUTHOR, CHANGELOG, SYSTEM_PROMPT, 
 
 
 def test_system_prompt_is_versioned() -> None:
-    assert VERSION == "1.5.0"
+    assert VERSION == "1.5.1"
     assert AUTHOR
     assert len(CHANGELOG) >= 5
 
