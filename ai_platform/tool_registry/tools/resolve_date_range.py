@@ -32,18 +32,15 @@ RESOLVE_DATE_RANGE_TOOL = ToolSpec(
     description=(
         "Converts a relative date expression (e.g. 'last month', 'next "
         "quarter', 'YTD', 'last 30 days', 'next 8 weeks', 'Q2 2025') into "
-        "an explicit date_from/date_to range, computed against the "
-        "simulation's current date - never guess these dates yourself. "
-        "Call this FIRST whenever the user's request uses a relative "
-        "time expression, then pass the returned date_from/date_to into "
-        "whichever tool actually answers the question (e.g. "
+        "an explicit date_from/date_to, computed against the "
+        "simulation's current date - never guess dates yourself. Call "
+        "this FIRST for any relative time expression, then pass "
+        "date_from/date_to into the tool that answers the question (e.g. "
         "get_expense_claims, get_expected_inflows). Does NOT retrieve "
-        "any business data itself - it only does date arithmetic. If the "
-        "expression can't be resolved, it fails with an error explaining "
-        "which forms are supported; ask the user for an explicit range "
-        "in that case. For a simple 'what's today's date?' question, use "
-        "get_current_date instead - it returns today's date directly without "
-        "computing a range."
+        "business data - date arithmetic only. If the expression can't "
+        "be resolved, it errors with the supported forms; ask the user "
+        "for an explicit range instead. For 'what's today's date?', use "
+        "get_current_date instead - it returns today directly, no range."
     ),
     parameters_model=ResolveDateRangeParams,
     result_model=ResolveDateRangeResult,

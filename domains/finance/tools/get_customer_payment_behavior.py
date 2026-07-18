@@ -38,17 +38,15 @@ async def get_customer_payment_behavior_handler(
 GET_CUSTOMER_PAYMENT_BEHAVIOR_TOOL = ToolSpec(
     name="get_customer_payment_behavior",
     description=(
-        "Returns one customer's payment history pattern: average days to "
-        "pay (positive = late, negative = early; null if they have no "
-        "fully paid invoices yet), how many payments were late, the "
-        "longest delay in days, whether the trend is 'improving', "
-        "'deteriorating', 'stable', or 'insufficient_data' (fewer than 4 "
-        "paid invoices to compare), and how many invoices that's based "
-        "on. Requires customer_id (business code, e.g. 'CUST-0007' - use "
-        "get_customer first if you only have a company name). Does NOT "
-        "return current balance or credit limit; use get_credit_exposure "
-        "for that. Use this for 'is Customer X paying slower than they "
-        "used to?' or 'what's Customer X's payment history?'."
+        "Returns one customer's payment pattern: average days to pay "
+        "(positive = late, negative = early; null if no fully paid "
+        "invoices yet), late-payment count, longest delay, trend "
+        "('improving'/'deteriorating'/'stable'/'insufficient_data' if "
+        "fewer than 4 paid invoices), and sample size. Requires "
+        "customer_id (e.g. 'CUST-0007' - use get_customer first if only "
+        "a company name is given). Does NOT return balance or credit "
+        "limit (use get_credit_exposure). Use for 'is Customer X paying "
+        "slower than before?' or 'what's Customer X's payment history?'."
     ),
     parameters_model=GetCustomerPaymentBehaviorParams,
     result_model=GetCustomerPaymentBehaviorResult,

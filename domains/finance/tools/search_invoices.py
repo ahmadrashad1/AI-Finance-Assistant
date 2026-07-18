@@ -83,16 +83,14 @@ async def search_invoices_handler(
 SEARCH_INVOICES_TOOL = ToolSpec(
     name="search_invoices",
     description=(
-        "Searches customer invoices by any combination of filters: exact "
-        "invoice_number, customer_id (business code, e.g. 'CUST-0007'), "
-        "status ('draft', 'sent', 'paid', 'partially_paid', 'overdue', or "
-        "'cancelled'), an amount range (minimum_amount/maximum_amount, "
-        "against the invoice total), and a due-date range "
-        "(due_after/due_before). All filters are optional and combine with "
-        "AND - omit a filter to not restrict on it. Use this for flexible "
-        "invoice lookups that get_unpaid_invoices/get_overdue_invoices "
-        "don't cover, e.g. 'Find invoice INV-1045', 'Show invoice "
-        "INV-1045', 'Show paid invoices over 5000 for CUST-0003', or "
+        "Searches invoices by any combination: exact invoice_number, "
+        "customer_id (e.g. 'CUST-0007'), status "
+        "('draft'/'sent'/'paid'/'partially_paid'/'overdue'/'cancelled'), "
+        "amount range (minimum_amount/maximum_amount), and due-date "
+        "range (due_after/due_before). All filters optional, combined "
+        "with AND. Use for flexible lookups get_unpaid_invoices/"
+        "get_overdue_invoices don't cover, e.g. 'Find invoice "
+        "INV-1045', 'Show paid invoices over 5000 for CUST-0003', "
         "'Invoices due before end of month'."
     ),
     parameters_model=SearchInvoicesParams,

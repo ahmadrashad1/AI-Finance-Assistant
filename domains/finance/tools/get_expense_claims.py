@@ -78,21 +78,17 @@ async def get_expense_claims_handler(
 GET_EXPENSE_CLAIMS_TOOL = ToolSpec(
     name="get_expense_claims",
     description=(
-        "Returns individual employee expense claim records (travel, "
-        "meals, supplies, software, training, etc.), each with its "
+        "Returns individual expense claims (any category), each with a "
         "recomputed policy_violations list (empty if compliant). "
-        "Optionally filter by employee_id (business code, e.g. "
-        "'EMP-0015'), department_id (department name, e.g. 'Sales'), "
-        "status ('submitted'/'approved'/'rejected'/'reimbursed'), "
-        "category, date_from/date_to (expense date range - call "
-        "resolve_date_range first for a relative expression), "
-        "minimum_amount, or claim_number (an exact claim like "
-        "'EXP-01234', for a single-claim lookup - returns an empty list, "
-        "not an error, if that claim doesn't exist). Does NOT return "
-        "departmental spend totals; use get_expense_summary_by_department "
-        "for that. Does NOT pre-filter to only claims that broke a "
-        "policy; use get_expense_policy_violations for that narrower "
-        "question."
+        "Optional filters: employee_id (e.g. 'EMP-0015'), department_id "
+        "(e.g. 'Sales'), status "
+        "('submitted'/'approved'/'rejected'/'reimbursed'), category, "
+        "date_from/date_to (call resolve_date_range first for a "
+        "relative expression), minimum_amount, or claim_number (e.g. "
+        "'EXP-01234', for a single-claim lookup - empty list, not an "
+        "error, if it doesn't exist). Does NOT return departmental "
+        "totals (use get_expense_summary_by_department) or pre-filter "
+        "to policy breaches (use get_expense_policy_violations)."
     ),
     parameters_model=GetExpenseClaimsParams,
     result_model=GetExpenseClaimsResult,

@@ -77,14 +77,14 @@ ASSESS_CREDIT_RISK_TOOL = ToolSpec(
         "Returns a combined risk PROFILE for one customer (business code "
         "required): credit exposure (balance, limit, utilization), "
         "payment behavior (average days to pay, late count, trend), and "
-        "invoice counts (total, unpaid, overdue). This tool returns "
-        "EVIDENCE ONLY - it never recommends increasing, decreasing, or "
-        "holding a credit limit. Reason over the returned evidence "
-        "yourself to answer judgment questions like 'should we increase "
-        "Customer X's credit limit?' or 'is Customer X a credit risk?' - "
-        "do not expect this tool to state a recommendation. Use the "
-        "narrower get_credit_exposure or get_customer_payment_behavior "
-        "instead when the user only wants one fact, not a full profile."
+        "invoice counts (total, unpaid, overdue). EVIDENCE ONLY - never "
+        "recommends increasing, decreasing, or holding a credit limit. "
+        "Reason over the evidence yourself for judgment questions like "
+        "'should we increase Customer X's credit limit?' or 'is "
+        "Customer X a credit risk?' - this tool will not state a "
+        "recommendation. Use the narrower get_credit_exposure or "
+        "get_customer_payment_behavior when the user wants only one "
+        "fact, not a full profile."
     ),
     parameters_model=AssessCreditRiskParams,
     result_model=AssessCreditRiskResult,

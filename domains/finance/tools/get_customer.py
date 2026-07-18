@@ -32,17 +32,15 @@ async def get_customer_handler(
 GET_CUSTOMER_TOOL = ToolSpec(
     name="get_customer",
     description=(
-        "Resolves a customer's company name to their business code and "
-        "confirmed name - a pure identity lookup with no balance or "
-        "invoice data. Requires customer_name (the company name as the "
-        "user says it, e.g. 'ABC Industries' - not a business code). Use "
-        "this as the first step of a multi-step plan when a later tool "
-        "call needs a customer_id (business code) but the user only gave "
-        "a company name - e.g. 'Which of those belong to ABC Industries?' "
-        "resolves ABC Industries to its code first, then filters the "
-        "invoice tool by that code. Don't use this when the question is "
-        "just about one customer's balance (use get_customer_balance "
-        "directly instead)."
+        "Resolves a customer's company name to its business code and "
+        "confirmed name - a pure identity lookup, no balance or invoice "
+        "data. Requires customer_name (the name as the user says it, "
+        "e.g. 'ABC Industries' - not a code). Use as the first step of "
+        "a multi-step plan when a later call needs a customer_id but "
+        "the user only gave a name - e.g. 'Which of those belong to ABC "
+        "Industries?' resolves the code first, then filters the invoice "
+        "tool by it. Don't use this for a single customer's balance "
+        "question (use get_customer_balance directly)."
     ),
     parameters_model=GetCustomerParams,
     result_model=GetCustomerResult,

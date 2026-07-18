@@ -90,7 +90,7 @@ class Planner:
         message: str,
         recent_turn_summaries: list[TurnSummary] | None = None,
     ) -> Plan:
-        tools_json = json.dumps(self._registry.to_planner_json(), indent=2)
+        tools_json = json.dumps(self._registry.to_planner_json(), separators=(",", ":"))
         recent_activity = _render_recent_activity(recent_turn_summaries or [])
         system = build_planning_prompt(tools_json, recent_activity)
         prompt = self._prompt_builder.build(system, history)
