@@ -1,6 +1,6 @@
 """Versioned system prompt for the Phase 1 planner.
 
-Version: 1.5.3
+Version: 1.5.5
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-07): Initial version. Three-branch planning contract
@@ -147,11 +147,22 @@ Changelog:
     a combined inflows-and-outflows worked case ('collect from customers
     and pay to vendors'); (10) get_current_date's tool description (not
     the rules block) now names "day of the week" explicitly.
+  - 1.5.5 (2026-07-20): Fix a regression the 1.5.4 clean recording pass
+    surfaced (56/89, but current_date_basic/current_date_day_of_week both
+    dropped to 0/2 - the model answered "what's today's date?" directly
+    instead of calling get_current_date). Root cause: shape 3's
+    definition ("small talk or general conversation that needs no tool")
+    was itself the competing signal, ranking above get_current_date's own
+    tool description ("never assume you already know it") that 1.5.4 had
+    already added - reinforcing a tool's description is not enough when
+    the branch-selection rule itself invites the wrong answer. Fixed by
+    tightening shape 3 to explicitly exclude anything a tool could
+    answer, naming the current date/day of week as the concrete example.
 """
 
 from __future__ import annotations
 
-VERSION = "1.5.4"
+VERSION = "1.5.5"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-07): Initial version - three-branch planning contract "
@@ -206,6 +217,10 @@ CHANGELOG = [
     "example, a stricter assess_credit_risk contract, a combined "
     "inflows-and-outflows worked case, and a get_current_date "
     "day-of-week paraphrase.",
+    "1.5.5 (2026-07-20): Fix a regression the 1.5.4 clean recording pass "
+    "surfaced - current_date cases dropped to 0/2 because shape 3's own "
+    "definition outranked get_current_date's tool description. Tightened "
+    "shape 3 to explicitly exclude anything a tool could answer.",
 ]
 
 PLANNING_SYSTEM_PROMPT_TEMPLATE = (
@@ -223,8 +238,9 @@ PLANNING_SYSTEM_PROMPT_TEMPLATE = (
     "2. Call one or more tools when the request needs data this system can "
     "retrieve:\n"
     '{{"tool_calls": [{{"tool": "<tool name>", "parameters": {{}}}}]}}\n\n'
-    "3. Answer directly for small talk or general conversation that needs no "
-    "tool and no clarification:\n"
+    "3. Answer directly ONLY for small talk/greetings that no tool above "
+    "could ever answer - never for the current date/day of week, which you "
+    "do not actually know and must get from get_current_date:\n"
     '{{"direct_answer": true}}\n\n'
     "4. Politely refuse when NO tool in the list above could ever answer "
     "this, no matter what parameters were supplied - not a finance "

@@ -4,10 +4,10 @@ from ai_platform.prompts.planning_prompt import AUTHOR, CHANGELOG, VERSION, buil
 
 
 def test_planning_prompt_is_versioned() -> None:
-    assert VERSION == "1.5.4"
+    assert VERSION == "1.5.5"
     assert AUTHOR
     assert len(CHANGELOG) >= 5
-    assert len(CHANGELOG) == 10
+    assert len(CHANGELOG) == 11
 
 
 def test_build_planning_prompt_embeds_tool_specs_and_schema_shapes() -> None:
