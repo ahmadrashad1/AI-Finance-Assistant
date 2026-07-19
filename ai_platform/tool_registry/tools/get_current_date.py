@@ -28,7 +28,8 @@ GET_CURRENT_DATE_TOOL = ToolSpec(
     name="get_current_date",
     description=(
         "Returns today's current date (ISO 8601, e.g. '2026-07-07') and day "
-        "of week. Use this whenever the user asks what today's date is."
+        "of week. Use this whenever the user asks what today's date is or "
+        "what day of the week it is - never assume you already know it."
     ),
     parameters_model=GetCurrentDateParams,
     result_model=GetCurrentDateResult,
