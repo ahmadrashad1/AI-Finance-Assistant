@@ -70,11 +70,25 @@ async def _run_turn(
     request_id = f"eval-{case_id}-{run_token}-turn{turn}"
     recorder: RecordingLLMService | None = None
 
-    if mode == "live":
+    existing_cassette = (
+        load_cassette(case_id, turn, cassettes_root=cassettes_root)
+        if mode == "live" and record
+        else None
+    )
+    if mode == "live" and existing_cassette is not None:
+        # A cassette already exists for this case/turn under the current prompt
+        # version hash (recorded in an earlier, possibly interrupted --record run) -
+        # replay it instead of burning live-call budget re-recording identical
+        # output. --record only (re)records case/turns that are actually missing.
+        llm_service: LLMService = ScriptedLLMService(
+            plan_response=existing_cassette["plan_response"],
+            response_text=existing_cassette["response_text"],
+        )
+    elif mode == "live":
         if real_llm_service is None:
             raise ValueError("live mode requires a real_llm_service")
         recorder = RecordingLLMService(real_llm_service)
-        llm_service: LLMService = recorder
+        llm_service = recorder
     else:
         cassette = load_cassette(case_id, turn, cassettes_root=cassettes_root)
         if cassette is None:
