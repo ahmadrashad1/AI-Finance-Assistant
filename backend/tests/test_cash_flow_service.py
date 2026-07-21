@@ -20,6 +20,7 @@ from domains.finance.repositories.vendor_invoice_repository import VendorInvoice
 from domains.finance.repositories.vendor_repository import VendorRepository
 from domains.finance.services.cash_flow_service import CashFlowService
 from domains.finance.services.credit_service import CreditService
+from domains.finance.simulation import simulation_today
 
 
 def _service(db_session: AsyncSession) -> CashFlowService:
@@ -197,4 +198,85 @@ async def test_payment_prioritization_ranks_preferred_vendor_first(
     prioritization = await _service(db_session).get_payment_prioritization()
     assert prioritization.items[0].vendor_invoice_number == "VINV-6102"
     assert prioritization.items[0].vendor_preferred is True
+
+
+@pytest.mark.asyncio
+async def test_expected_inflows_window_containing_today_includes_overdue_invoice(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """An already-overdue receivable (expected_receipt_date in the past) is
+    rolled into the window that contains "today" - scenario 3."""
+    today = simulation_today()
+    customer = await _make_customer(db_session, "CUST-6201")
+    invoice_repo = InvoiceRepository(db_session)
+    overdue_due_date = today - timedelta(days=10)
+    await invoice_repo.create(
+        invoice_number="INV-6201", customer_id=customer.id, purchase_order_id=None,
+        issue_date=overdue_due_date - timedelta(days=30), due_date=overdue_due_date,
+        status="overdue", subtotal=Decimal("750"), tax=Decimal("0"), total=Decimal("750"),
+    )
+    await db_session.commit()
+
+    inflows = await _service(db_session).get_expected_inflows(
+        date_from=today, date_to=today + timedelta(days=6)
+    )
+    assert len(inflows) == 1
+    # The true (past) expected_receipt_date is preserved on the record, even
+    # though it was clamped to "today" only for the window-membership check.
+    assert inflows[0].expected_receipt_date == overdue_due_date
+    assert inflows[0].amount == Decimal("750")
+
+
+@pytest.mark.asyncio
+async def test_expected_inflows_future_window_excludes_overdue_invoice(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """A future window that does not contain "today" must NOT sweep in an
+    overdue receivable - overdue AR is "expected now," not "expected next
+    month" - scenario 2."""
+    today = simulation_today()
+    customer = await _make_customer(db_session, "CUST-6202")
+    invoice_repo = InvoiceRepository(db_session)
+    overdue_due_date = today - timedelta(days=10)
+    await invoice_repo.create(
+        invoice_number="INV-6202", customer_id=customer.id, purchase_order_id=None,
+        issue_date=overdue_due_date - timedelta(days=30), due_date=overdue_due_date,
+        status="overdue", subtotal=Decimal("750"), tax=Decimal("0"), total=Decimal("750"),
+    )
+    await db_session.commit()
+
+    next_month_start = today.replace(day=1) + timedelta(days=32)
+    next_month_start = next_month_start.replace(day=1)
+    next_month_end = next_month_start + timedelta(days=27)
+    inflows = await _service(db_session).get_expected_inflows(
+        date_from=next_month_start, date_to=next_month_end
+    )
+    assert inflows == []
+
+
+@pytest.mark.asyncio
+async def test_forecast_cash_flow_places_overdue_invoice_in_current_week_only(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    """scenario 1: forecast_cash_flow(weeks=4) with an overdue invoice must
+    count it exactly once, in week 0, and never in weeks 1-3 - it must not
+    be dropped entirely (the original bug) nor double-counted across weeks."""
+    await _make_bank_account(db_session, Decimal("10000"))
+    today = simulation_today()
+    customer = await _make_customer(db_session, "CUST-6203")
+    invoice_repo = InvoiceRepository(db_session)
+    overdue_due_date = today - timedelta(days=10)
+    await invoice_repo.create(
+        invoice_number="INV-6203", customer_id=customer.id, purchase_order_id=None,
+        issue_date=overdue_due_date - timedelta(days=30), due_date=overdue_due_date,
+        status="overdue", subtotal=Decimal("750"), tax=Decimal("0"), total=Decimal("750"),
+    )
+    await db_session.commit()
+
+    forecast = await _service(db_session).forecast_cash_flow(weeks=4)
+    assert len(forecast.periods) == 4
+    assert forecast.periods[0].inflows == Decimal("750")
+    assert forecast.periods[1].inflows == Decimal("0")
+    assert forecast.periods[2].inflows == Decimal("0")
+    assert forecast.periods[3].inflows == Decimal("0")
 

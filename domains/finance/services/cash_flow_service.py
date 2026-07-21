@@ -112,6 +112,7 @@ class CashFlowService:
         self._credit_service = credit_service
 
     async def get_expected_inflows(self, *, date_from: date, date_to: date) -> list[ExpectedInflow]:
+        today = simulation_today()
         invoices = await self._invoice_repository.list_by_statuses(statuses=UNPAID_AR_STATUSES)
         customers = await self._customer_repository.list_all()
         customers_by_id = {customer.id: customer for customer in customers}
@@ -130,7 +131,15 @@ class CashFlowService:
             average_days_to_pay = behavior_cache[customer.id]
             adjustment_days = max(0, round(average_days_to_pay)) if average_days_to_pay else 0
             expected_receipt_date = invoice.due_date + timedelta(days=adjustment_days)
-            if date_from <= expected_receipt_date <= date_to:
+            # Already-overdue receipts (expected_receipt_date before today) are
+            # rolled into whichever window contains "today" - clamping against
+            # the fixed simulation_today() reference, never against this call's
+            # own date_from, so an overdue invoice is counted in exactly one
+            # week's window instead of matching every window it's asked about.
+            effective_receipt_date = (
+                expected_receipt_date if expected_receipt_date >= today else today
+            )
+            if date_from <= effective_receipt_date <= date_to:
                 results.append(
                     ExpectedInflow(
                         invoice_number=invoice.invoice_number,
