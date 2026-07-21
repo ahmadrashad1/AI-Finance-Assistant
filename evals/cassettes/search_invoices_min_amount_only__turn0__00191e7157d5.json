@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"minimum_amount\": 50000\n         }\n      }\n   ]\n}",
+  "response_text": "### Invoices Over $50,000\n\n| Invoice Number | Customer Name | Total |\n| --- | --- | --- |\n| INV-7087 | Vertex Logistics | 56,646.00 |\n| INV-7154 | Anchor Components | 72,063.00 |\n| INV-7176 | Vertex Logistics | 79,407.00 |\n| INV-7163 | Summit Systems | 63,234.00 |\n| INV-7050 | Delta Logistics | 56,106.00 |\n| INV-7067 | Cascade Logistics | 63,882.00 |\n| INV-7172 | Meridian Manufacturing | 65,637.00 |\n| INV-7147 | Titan Components | 73,683.00 |\n| INV-7009 | Harbor Materials | 93,744.00 |\n\nShowing only the top 9 records out of a total of 35 invoices, with a total amount of $2,408,292.00."
+}

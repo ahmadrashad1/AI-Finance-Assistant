@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"find_duplicate_expense_claims\",\n         \"parameters\": {}\n      }\n   ]\n}",
+  "response_text": "There seems to be duplicate expense claims submitted by Maria Kim (employee code: EMP-0015). One claim was submitted on 2025-04-04 (EXP-00182) and reimbursed, while the other claim was submitted on 2025-04-06 (EXP-00339) and is still submitted.\n\nHere are the details of the duplicate expense claims:\n\n| Claim # | Employee Code | Employee Name | Category | Amount | Status       |\n|---------|---------------|---------------|----------|--------|--------------|\n| EXP-00182 | EMP-0015    | Maria Kim      | software | 1040.00 | reimbursed   |\n| EXP-00339 | EMP-0015    | Maria Kim      | software | 1040.00 | submitted    |\n\nPlease let me know if you'd like more information about these claims or want me to investigate further."
+}

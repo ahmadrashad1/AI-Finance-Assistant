@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"out_of_scope_refusal\": \"I'm a read-only system. To help with invoices, I can list or search for them, or find duplicates, but I cannot modify or delete existing invoices.\"\n}",
+  "response_text": ""
+}

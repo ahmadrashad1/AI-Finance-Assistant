@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"resolve_date_range\",\n         \"parameters\": {\n            \"expression\": \"June 1, 2025\"\n         }\n      },\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"due_before\": \"$step0.date_before\",\n            \"minimum_amount\": 40000\n         }\n      }\n   ]\n}",
+  "response_text": "I'm unable to access the requested date range or search for invoices due before June 1, 2025. It seems like the date expression \"June 1, 2025\" was too specific and didn't match the accepted formats.\n\nHowever, I can suggest you try alternative date ranges that might work, such as 'next quarter', 'Q2 2025', or 'last 30 days'."
+}

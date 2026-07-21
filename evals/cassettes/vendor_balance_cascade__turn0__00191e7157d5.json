@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n        \"tool\": \"search_customers\",\n        \"parameters\": {\n          \"name_query\": \"Cascade Industries\"\n        }\n      },\n      {\n        \"tool\": \"get_vendor_balance\",\n        \"parameters\": {\n          \"vendor_name\": \"$step0.customer_code\"\n        }\n      }\n   ]\n}",
+  "response_text": "I'm unable to retrieve information about what we owe Cascade Industries, as the provided tool results include an error related to accessing information earlier in the process."
+}
