@@ -1,6 +1,6 @@
 # HANDOFF — AI Finance Assistant
 
-Last updated: 2026-07-21 | Current milestone: 12 — Phase A Domains (Expense Management, Credit Management, Cash Flow Forecasting) | Status: **complete**
+Last updated: 2026-07-21 | Current milestone: 12 — Phase A Domains (Expense Management, Credit Management, Cash Flow Forecasting) | Status: **complete, PR #1 open**
 
 ## 1. Current State
 
@@ -39,7 +39,7 @@ Plan: `docs/superpowers/plans/2026-07-16-milestone-12-phase-a-domains.md`. PRD C
 
 ## 4. In-Progress Work
 
-Nothing mid-implementation. Milestone 12 plan fully executed; branch not yet pushed (user hasn't asked).
+Nothing mid-implementation. Milestone 12 plan fully executed, branch pushed to `origin/milestone-12-phase-a-domains`, and PR #1 opened against `milestone-11-simulator-v2`: https://github.com/ahmadrashad1/AI-Finance-Assistant/pull/1. Awaiting review/merge.
 
 ## 5. Decisions Made
 
