@@ -38,7 +38,8 @@ async def list_customers_over_credit_limit_handler(
         customers=[
             OverLimitCustomerOut(
                 customer_code=exposure.customer_code, customer_name=exposure.customer_name,
-                outstanding_balance=exposure.outstanding_balance, credit_limit=exposure.credit_limit,
+                outstanding_balance=exposure.outstanding_balance,
+                credit_limit=exposure.credit_limit,
                 utilization_percent=exposure.utilization_percent,
             )
             for exposure in exposures
