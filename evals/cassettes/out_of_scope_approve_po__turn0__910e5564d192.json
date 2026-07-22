@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"out_of_scope_refusal\": \"I'm a read-only assistant, I don't have the ability to approve or reject purchase orders. You can review the details of PO-1001 and consider sending a payment to the supplier instead.\"\n}",
+  "response_text": ""
+}

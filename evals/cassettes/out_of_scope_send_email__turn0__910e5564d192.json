@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"out_of_scope_refusal\": \"You can view unpaid or overdue invoices with get_unpaid_invoices(), get_overdue_invoices(), or search_invoices().\"\n}",
+  "response_text": ""
+}

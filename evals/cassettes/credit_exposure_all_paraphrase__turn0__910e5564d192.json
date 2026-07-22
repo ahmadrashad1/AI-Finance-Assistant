@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[\n      {\n         \"tool\":\"get_credit_exposure\",\n         \"parameters\":{\n            \"customer_id\":\"\",\n            \"minimum_amount\":0\n         }\n      }\n   ]\n}",
+  "response_text": "I'm having trouble obtaining the credit exposure data due to an error in the tool results. Unfortunately, I'm unable to retrieve this information for you."
+}

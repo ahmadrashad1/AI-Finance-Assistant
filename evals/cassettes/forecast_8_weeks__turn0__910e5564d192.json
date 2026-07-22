@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"resolve_date_range\",\n         \"parameters\": {\n            \"expression\": \"next 8 weeks\"\n         }\n      },\n      {\n         \"tool\": \"forecast_cash_flow\",\n         \"parameters\": {\n            \"weeks\": \"$step0.weeks\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, I'm unable to generate an accurate 8-week cash forecast without the necessary data. The \"forecast_cash_flow\" tool returned an error and didn't provide any meaningful result. I'd need this information to proceed with the forecast."
+}

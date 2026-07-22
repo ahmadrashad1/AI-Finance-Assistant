@@ -1,6 +1,6 @@
 """Versioned system prompt for the Phase 1 planner.
 
-Version: 1.5.5
+Version: 1.5.6
 Author: AI Employee Platform team
 Changelog:
   - 1.0.0 (2026-07-07): Initial version. Three-branch planning contract
@@ -158,11 +158,56 @@ Changelog:
     the branch-selection rule itself invites the wrong answer. Fixed by
     tightening shape 3 to explicitly exclude anything a tool could
     answer, naming the current date/day of week as the concrete example.
+  - 1.5.6 (2026-07-22/23): A post-merge regression audit (diffing the
+    Milestone 11 baseline against Milestone 12's per-case results, not
+    just the aggregate score) found 8 of the 53 legacy cases had silently
+    regressed despite 1.5.1-1.5.5's fix loops. Investigated all 8 live at
+    temperature=0 (see ai_platform.llm.service). Only ONE fix survived a
+    full clean re-record with zero collateral damage: shape 3 is
+    reordered so its current-date/day-of-week exclusion leads the
+    sentence instead of trailing it ("NEVER for the current date or day
+    of week ... even though it sounds conversational, that's always
+    get_current_date") - fixes current_date_basic/current_date_day_of_week.
+    Three other fixes were attempted, each verified live, and each
+    reverted because a full-suite re-record showed collateral damage
+    elsewhere that outweighed the fix: (a) a bare-fragment-rule rewrite
+    meant to stop "Anchor Components"/"Pioneer Manufacturing" from being
+    misread as fragments instead caused get_customer_balance to start
+    resolving to get_vendor_balance across several unrelated cases,
+    plausibly because the rewrite listed a customer name and a vendor
+    name side by side as undifferentiated "full name" examples; (b) a
+    get_aging_report/get_vendor_invoices disambiguation clause fixed
+    vendor_invoices_overdue_status but broke aging_report_basic, which
+    had been passing; (c) a find_duplicate_invoices paraphrase addition
+    fixed duplicate_detection_none_found but broke three sibling
+    duplicate-detection cases that had been passing. A fourth attempted
+    fix (a resolve_date_range tool-description clause for explicit
+    calendar dates) did not even achieve its own goal - the model kept
+    calling resolve_date_range on "June 1, 2025" regardless - despite an
+    isolated probe that looked like a pass; that probe turned out to have
+    been invalidated by a same-minute 413 on the very next diagnostic
+    call, not a genuine confirmation. search_invoices_due_before_and_
+    min_amount, customer_balance_anchor, vendor_balance_pioneer,
+    overdue_invoices_for_anchor_piped, and aging_report_explanation
+    remain open regressions - see HANDOFF.md for the full root-cause
+    notes for a future attempt. This session's finding: this model, at
+    this tool-catalog size, is sensitive enough to small wording changes
+    that ANY rules-block edit needs a full-suite re-record to trust, not
+    just a single-case probe - PRD Ch.24's domain-routing mitigation
+    (Milestone 14) may be a more durable fix than further prompt tuning.
+    Paired with ai_platform.llm.service pinning temperature=0 on the
+    planning call only (Phase 2 response generation is untouched, still
+    using stream_reply's default sampling) - the planner had no
+    temperature parameter at all before this, meaning every prior
+    recording pass was one non-deterministic sample of the model's output
+    distribution; already a known, deferred item (docs/MVP-REPORT.md's
+    "planning temperature ~0" post-MVP priority), and what made the
+    single-case-probe methodology above possible at all.
 """
 
 from __future__ import annotations
 
-VERSION = "1.5.5"
+VERSION = "1.5.6"
 AUTHOR = "AI Employee Platform team"
 CHANGELOG = [
     "1.0.0 (2026-07-07): Initial version - three-branch planning contract "
@@ -221,6 +266,14 @@ CHANGELOG = [
     "surfaced - current_date cases dropped to 0/2 because shape 3's own "
     "definition outranked get_current_date's tool description. Tightened "
     "shape 3 to explicitly exclude anything a tool could answer.",
+    "1.5.6 (2026-07-22/23): Fix current_date_basic/current_date_day_of_"
+    "week by reordering shape 3 to lead with its current-date exclusion. "
+    "Three other attempted fixes (fragment/full-name rule, get_aging_"
+    "report/vendor disambiguation, a duplicate-check paraphrase) were "
+    "verified live and reverted after a full-suite re-record showed each "
+    "one traded a fix for new collateral regressions elsewhere - see "
+    "HANDOFF.md. Paired with a planning-call temperature=0 pin in "
+    "ai_platform.llm.service (previously unset/non-deterministic).",
 ]
 
 PLANNING_SYSTEM_PROMPT_TEMPLATE = (
@@ -238,9 +291,10 @@ PLANNING_SYSTEM_PROMPT_TEMPLATE = (
     "2. Call one or more tools when the request needs data this system can "
     "retrieve:\n"
     '{{"tool_calls": [{{"tool": "<tool name>", "parameters": {{}}}}]}}\n\n'
-    "3. Answer directly ONLY for small talk/greetings that no tool above "
-    "could ever answer - never for the current date/day of week, which you "
-    "do not actually know and must get from get_current_date:\n"
+    "3. NEVER for the current date or day of week - that's always "
+    "get_current_date (case 2), even though it sounds conversational. "
+    "Otherwise, answer directly ONLY for small talk/greetings that no tool "
+    "above could ever answer:\n"
     '{{"direct_answer": true}}\n\n'
     "4. Politely refuse when NO tool in the list above could ever answer "
     "this, no matter what parameters were supplied - not a finance "

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"Fictional Client Inc\"\n         }\n      },\n      {\n         \"tool\": \"assess_credit_risk\",\n         \"parameters\": {\n            \"customer_id\": \"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "Unfortunately, I couldn't find any information about Fictional Client Inc. Two of my tools returned errors, and I don't have enough data to provide an answer. The results are:\n\n| Tool   | Status | Result         | Error                                  |\n|--------|--------|----------------|----------------------------------------|\n| get_customer | error | null           | Customer not found: Fictional Client Inc |\n| assess_credit_risk | error | null           | An earlier step didn't return the information this lookup needed. |"
+}
