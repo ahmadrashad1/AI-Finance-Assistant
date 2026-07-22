@@ -1,0 +1,8 @@
+id: pending_approvals_finance_paraphrase
+category: expense_phrasing
+user_message: "Are there any expense claims sitting in Finance waiting on a manager?"
+expectations:
+  expected_tools:
+    - tool: get_pending_expense_approvals
+      parameters:
+        department_id: "Finance"

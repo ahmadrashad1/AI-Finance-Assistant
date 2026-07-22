@@ -4,9 +4,10 @@ from ai_platform.prompts.planning_prompt import AUTHOR, CHANGELOG, VERSION, buil
 
 
 def test_planning_prompt_is_versioned() -> None:
-    assert VERSION == "1.4.0"
+    assert VERSION == "1.5.6"
     assert AUTHOR
     assert len(CHANGELOG) >= 5
+    assert len(CHANGELOG) == 12
 
 
 def test_build_planning_prompt_embeds_tool_specs_and_schema_shapes() -> None:
@@ -19,12 +20,11 @@ def test_build_planning_prompt_embeds_tool_specs_and_schema_shapes() -> None:
 
 def test_build_planning_prompt_teaches_paraphrase_invariant_tool_selection() -> None:
     prompt = build_planning_prompt("[]").lower()
+    assert "get_unpaid_invoices" in prompt
     for phrase in [
-        "show unpaid invoices",
-        "which invoices haven't been paid",
+        "unpaid invoices",
+        "who owes us money",
         "outstanding invoices",
-        "who still owes us money",
-        "customers with overdue invoices",
     ]:
         assert phrase in prompt
 
@@ -37,7 +37,7 @@ def test_build_planning_prompt_disambiguates_unpaid_vs_overdue() -> None:
 
 def test_build_planning_prompt_teaches_search_invoices_phrasings() -> None:
     prompt = build_planning_prompt("[]").lower()
-    assert "find invoice" in prompt
+    assert "invoice_number" in prompt
     assert "search_invoices" in prompt
 
 
@@ -45,7 +45,7 @@ def test_build_planning_prompt_teaches_customer_and_vendor_balance_phrasings() -
     prompt = build_planning_prompt("[]").lower()
     assert "get_customer_balance" in prompt
     assert "get_vendor_balance" in prompt
-    assert "how much does" in prompt
+    assert "call directly" in prompt
     assert "what do we owe" in prompt
 
 
@@ -78,8 +78,7 @@ def test_build_planning_prompt_states_the_five_tool_call_cap() -> None:
 
 def test_build_planning_prompt_teaches_the_reasoning_query_pattern() -> None:
     prompt = build_planning_prompt("[]").lower()
-    assert "get_vendor_invoices" in prompt
-    assert "get_cash_position" in prompt
+    assert "get_payment_prioritization" in prompt
     assert "which invoices should i pay first" in prompt
 
 

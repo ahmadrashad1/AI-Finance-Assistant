@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n        \"tool\": \"get_cash_position\",\n        \"parameters\": {}\n      }\n    ]\n}",
+  "response_text": "As of 2026-07-08, our current cash position is $996,285.30."
+}

@@ -6,4 +6,4 @@ expectations:
     - tool: get_aging_report
       parameters: {}
   required_facts:
-    - "2202646.50"
+    - "2674568.70"

@@ -3,9 +3,7 @@ category: explanation_quality
 user_message: "Which invoices should I pay first, and why?"
 expectations:
   expected_tools:
-    - tool: get_vendor_invoices
-      parameters: {}
-    - tool: get_cash_position
+    - tool: get_payment_prioritization
       parameters: {}
   required_facts:
-    - "918201.30"
+    - "996285.30"

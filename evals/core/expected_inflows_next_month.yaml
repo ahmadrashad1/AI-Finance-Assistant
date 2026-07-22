@@ -1,0 +1,12 @@
+id: expected_inflows_next_month
+category: cashflow_parameter_extraction
+user_message: "What cash are we expecting to receive next month?"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "next month"
+    - tool: get_expected_inflows
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"

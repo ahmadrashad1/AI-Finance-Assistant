@@ -62,3 +62,16 @@ class PaymentRepository:
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
+
+    async def list_by_customer(self, customer_id: uuid.UUID) -> list[PaymentModel]:
+        stmt = (
+            select(PaymentModel)
+            .where(
+                PaymentModel.invoice_id.in_(
+                    select(InvoiceModel.id).where(InvoiceModel.customer_id == customer_id)
+                )
+            )
+            .order_by(PaymentModel.payment_date)
+        )
+        result = await self._db.execute(stmt)
+        return list(result.scalars().all())

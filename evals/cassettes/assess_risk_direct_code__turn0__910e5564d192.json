@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_customer\",\n         \"parameters\": {\n            \"customer_name\": \"CUST-0026\"\n         }\n      },\n      {\n         \"tool\": \"assess_credit_risk\",\n         \"parameters\": {\n            \"customer_id\": \"$step0.customer_code\"\n         }\n      }\n   ]\n}",
+  "response_text": "I'm unable to assess the credit risk for CUST-0026 as neither the \"get_customer\" tool nor the \"assess_credit_risk\" tool could retrieve the necessary information. It appears CUST-0026 is a customer who doesn't exist in our database."
+}

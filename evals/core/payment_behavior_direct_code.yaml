@@ -1,0 +1,8 @@
+id: payment_behavior_direct_code
+category: credit_parameter_extraction
+user_message: "What's the payment behavior for CUST-0003?"
+expectations:
+  expected_tools:
+    - tool: get_customer_payment_behavior
+      parameters:
+        customer_id: "CUST-0003"

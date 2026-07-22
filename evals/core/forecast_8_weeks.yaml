@@ -1,0 +1,8 @@
+id: forecast_8_weeks
+category: cashflow_phrasing
+user_message: "What's our 8-week cash forecast?"
+expectations:
+  expected_tools:
+    - tool: forecast_cash_flow
+      parameters:
+        weeks: 8

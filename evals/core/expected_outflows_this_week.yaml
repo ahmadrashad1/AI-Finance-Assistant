@@ -1,0 +1,12 @@
+id: expected_outflows_this_week
+category: cashflow_phrasing
+user_message: "What payments are going out this week?"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "this week"
+    - tool: get_expected_outflows
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"

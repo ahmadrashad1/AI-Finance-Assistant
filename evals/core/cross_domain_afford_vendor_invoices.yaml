@@ -1,0 +1,14 @@
+id: cross_domain_afford_vendor_invoices
+category: cross_domain
+user_message: "Can we afford to pay all our vendor invoices due next month?"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "next month"
+    - tool: get_cash_position
+      parameters: {}
+    - tool: get_expected_outflows
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"

@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[ \n      {\n         \"tool\":\"search_invoices\",\n         \"parameters\":{\n            \"invoice_number\":\"INV-7051\"\n         }\n      }\n   ]\n}",
+  "response_text": "Here's the result for invoice INV-7051:\n\n| invoice_number | customer_name  | issue_date | due_date | total | balance | days_outstanding | status |\n|----------------|----------------|------------|----------|-------|---------|------------------|--------|\n| INV-7051      | Granite Systems| 2025-01-28 | 2025-03-14| 21060.00 | 21060.00 | 481              | overdue |\n\nThis invoice is for Granite Systems and has a balance of $21,060.00. It's been outstanding for 481 days and is overdue. \n\nI'm showing only the top record out of the total count of 1. The total amount of this invoice is $21,060.00."
+}

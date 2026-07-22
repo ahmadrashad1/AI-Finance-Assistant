@@ -1,0 +1,13 @@
+id: expense_claims_dept_operations_year
+category: expense_phrasing
+user_message: "Show me all expense claims from the Operations department this year"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "this year"
+    - tool: get_expense_claims
+      parameters:
+        department_id: "Operations"
+        date_from: "<piped>"
+        date_to: "<piped>"

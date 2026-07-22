@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"out_of_scope_refusal\": \"I can provide financial information about existing expense claims, but I cannot approve or reject them. You can view existing expense claims by using the 'get_expense_claims' tool with the correct parameters.\"\n}",
+  "response_text": ""
+}

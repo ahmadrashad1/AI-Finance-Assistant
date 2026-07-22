@@ -37,18 +37,14 @@ async def search_customers_handler(
 SEARCH_CUSTOMERS_TOOL = ToolSpec(
     name="search_customers",
     description=(
-        "Searches for customers by a partial or fragment company name "
-        "(case-insensitive substring match) and returns every matching "
-        "company's name and business code - zero, one, or many. Use this "
-        "when the user references a customer by a short or partial name "
-        "that could plausibly match more than one real company (e.g. "
-        "'ABC' rather than a full company name like 'ABC Industries') - "
-        "if the result has more than one match, ask the user which "
-        "company they meant before doing anything else, naming the real "
-        "candidates. If the user already gave what looks like a full, "
-        "specific company name, use get_customer or get_customer_balance "
-        "directly instead - don't use this tool for names that are "
-        "already unambiguous."
+        "Searches customers by a partial/fragment company name "
+        "(case-insensitive substring match), returning every match's "
+        "name and business code - zero, one, or many. Use when the user "
+        "gives a short or partial name that could match more than one "
+        "company (e.g. 'ABC' vs 'ABC Industries') - if more than one "
+        "match, ask which company they meant, naming the candidates. If "
+        "the name already looks full and specific, use get_customer or "
+        "get_customer_balance directly instead."
     ),
     parameters_model=SearchCustomersParams,
     result_model=SearchCustomersResult,

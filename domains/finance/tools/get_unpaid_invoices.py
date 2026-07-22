@@ -69,18 +69,15 @@ async def get_unpaid_invoices_handler(
 GET_UNPAID_INVOICES_TOOL = ToolSpec(
     name="get_unpaid_invoices",
     description=(
-        "Returns every customer invoice that is still unpaid - status "
-        "'sent', 'partially_paid', or 'overdue' (never 'draft' or "
-        "'cancelled') - together with the amount still owed (balance), "
-        "days outstanding past the due date, and business status. Use "
-        "this whenever the user asks who owes money or wants a list of "
-        "outstanding/unpaid customer invoices, however they phrase it - "
-        "e.g. 'Show unpaid invoices', 'Which invoices haven't been "
-        "paid?', 'Outstanding invoices?', 'Who still owes us money?', or "
-        "'Customers with overdue invoices'. Optionally filter to one "
-        "customer via customer_id (the customer's business code, e.g. "
-        "'CUST-0007') and/or to invoices with an outstanding balance at "
-        "or above minimum_amount."
+        "Returns every still-unpaid customer invoice - status 'sent', "
+        "'partially_paid', or 'overdue' (never 'draft'/'cancelled') - "
+        "with amount owed (balance), days outstanding, and status. Use "
+        "whenever the user asks who owes money or wants unpaid/"
+        "outstanding invoices, however phrased - e.g. 'Show unpaid "
+        "invoices', 'Which invoices haven't been paid?', 'Outstanding "
+        "invoices?', 'Who still owes us money?', 'Customers with "
+        "overdue invoices'. Optional filters: customer_id (e.g. "
+        "'CUST-0007') and/or minimum_amount outstanding."
     ),
     parameters_model=GetUnpaidInvoicesParams,
     result_model=GetUnpaidInvoicesResult,

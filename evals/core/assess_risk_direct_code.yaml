@@ -1,0 +1,10 @@
+id: assess_risk_direct_code
+category: credit_parameter_extraction
+user_message: "Assess the credit risk for CUST-0026"
+expectations:
+  expected_tools:
+    - tool: assess_credit_risk
+      parameters:
+        customer_id: "CUST-0026"
+  required_facts:
+    - "Ridgeline"

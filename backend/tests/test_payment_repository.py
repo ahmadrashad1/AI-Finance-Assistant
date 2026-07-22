@@ -112,3 +112,45 @@ async def test_record_payment_raises_for_nonexistent_invoice(
             payment_method="check",
             today=date(2026, 7, 8),
         )
+
+
+async def _make_customer(db_session: AsyncSession, code: str) -> object:
+    repo = CustomerRepository(db_session)
+    return await repo.create(
+        customer_code=code, company_name=f"{code} Corp", industry="manufacturing",
+        contact_name="A", contact_email=f"{code.lower()}@example.com", payment_terms="net_30",
+        credit_limit=Decimal("50000"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_by_customer_returns_only_that_customers_payments(
+    clean_db: None, db_session: AsyncSession
+) -> None:
+    customer_a = await _make_customer(db_session, "CUST-8001")
+    customer_b = await _make_customer(db_session, "CUST-8002")
+    invoice_repo = InvoiceRepository(db_session)
+    invoice_a = await invoice_repo.create(
+        invoice_number="INV-8001", customer_id=customer_a.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("100"), tax=Decimal("0"), total=Decimal("100"),
+    )
+    invoice_b = await invoice_repo.create(
+        invoice_number="INV-8002", customer_id=customer_b.id, purchase_order_id=None,
+        issue_date=date(2026, 1, 1), due_date=date(2026, 2, 1), status="sent",
+        subtotal=Decimal("200"), tax=Decimal("0"), total=Decimal("200"),
+    )
+    payment_repo = PaymentRepository(db_session)
+    await payment_repo.record_payment(
+        invoice_id=invoice_a.id, payment_date=date(2026, 1, 15), amount=Decimal("100"),
+        payment_method="bank_transfer",
+    )
+    await payment_repo.record_payment(
+        invoice_id=invoice_b.id, payment_date=date(2026, 1, 20), amount=Decimal("200"),
+        payment_method="bank_transfer",
+    )
+    await db_session.commit()
+
+    payments = await payment_repo.list_by_customer(customer_a.id)
+    assert len(payments) == 1
+    assert payments[0].amount == Decimal("100")

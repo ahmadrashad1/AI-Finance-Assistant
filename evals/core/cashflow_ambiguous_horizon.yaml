@@ -1,0 +1,5 @@
+id: cashflow_ambiguous_horizon
+category: cashflow_ambiguity
+user_message: "What's our cash flow looking like?"
+expectations:
+  expected_clarification: true

@@ -1,0 +1,5 @@
+id: expense_claims_ambiguous_recent
+category: expense_ambiguity
+user_message: "Show me recent expense claims"
+expectations:
+  expected_clarification: true

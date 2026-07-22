@@ -47,6 +47,9 @@ class AnthropicLLMService:
             raise AIError("I couldn't process that right now. Please try again.") from exc
 
     async def complete(self, system: str, history: list[dict[str, str]], message: str) -> str:
+        # This method backs Phase 1 planning only (stream_reply backs Phase
+        # 2), so pinning temperature=0 makes tool selection deterministic
+        # without affecting response generation's sampling.
         messages = [*history, {"role": "user", "content": message}]
         try:
             response = await self._client.messages.create(
@@ -54,6 +57,7 @@ class AnthropicLLMService:
                 max_tokens=CHAT_MAX_TOKENS,
                 system=system,
                 messages=messages,  # type: ignore[arg-type]
+                temperature=0,
             )
             return "".join(block.text for block in response.content if block.type == "text")
         except anthropic.APIConnectionError as exc:
@@ -100,6 +104,9 @@ class GroqLLMService:
             raise AIError("I couldn't process that right now. Please try again.") from exc
 
     async def complete(self, system: str, history: list[dict[str, str]], message: str) -> str:
+        # This method backs Phase 1 planning only (stream_reply backs Phase
+        # 2), so pinning temperature=0 makes tool selection deterministic
+        # without affecting response generation's sampling.
         messages = [
             {"role": "system", "content": system},
             *history,
@@ -110,6 +117,7 @@ class GroqLLMService:
                 model=self._model,
                 messages=messages,  # type: ignore[call-overload]
                 response_format={"type": "json_object"},
+                temperature=0,
             )
             return response.choices[0].message.content or ""
         except groq.APIConnectionError as exc:

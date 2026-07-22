@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_expense_claims\",\n         \"parameters\": {\n            \"status\": \"submitted\",\n            \"department_id\": \"Finance\"\n         }\n      }\n   ]\n}",
+  "response_text": "There are multiple expense claims sitting in Finance waiting on a manager. Here are the details:\n\n| Claim Number | Employee | Department | Category | Amount | Status |\n| --- | --- | --- | --- | --- | --- |\n| EXP-00004  | Priya Rossi | Finance | Training | 40.00 | Submitted |\n| EXP-00028  | Wei Ivanov | Finance | Software | 310.00 | Submitted |\n| EXP-00114  | Anna Osei | Finance | Meals | 65.00 | Submitted |\n| EXP-00299  | Ivan Torres | Finance | Training | 230.00 | Submitted |\n| EXP-00327  | Ivan Torres | Finance | Software | 610.00 | Submitted with policy violation (late submission) |\n\nSummary: **5 pending expense claims with a total value of $1245.00**."
+}

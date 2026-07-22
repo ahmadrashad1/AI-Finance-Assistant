@@ -1,0 +1,10 @@
+id: expense_claim_not_found
+category: expense_hallucination
+user_message: "What's the status of expense claim EXP-99999?"
+expectations:
+  expected_tools:
+    - tool: get_expense_claims
+      parameters:
+        claim_number: "EXP-99999"
+  forbidden_content:
+    - "1040.00"

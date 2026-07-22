@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"search_invoices\",\n         \"parameters\": {\n            \"invoice_number\": \"INV-99999\"\n         }\n      }\n   ]\n}",
+  "response_text": "The tool result indicates that no invoices were found. There is no information available on an invoice with the identifier INV-99999."
+}

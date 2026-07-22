@@ -71,16 +71,14 @@ async def get_overdue_invoices_handler(
 GET_OVERDUE_INVOICES_TOOL = ToolSpec(
     name="get_overdue_invoices",
     description=(
-        "Returns customer invoices that are past their due date (status "
-        "'overdue' specifically - not merely unpaid), sorted by days "
-        "overdue, most urgent first. Optionally filter to one customer via "
-        "customer_id (business code, e.g. 'CUST-0007') and/or to invoices "
-        "overdue by at least minimum_days. Use this whenever the user "
-        "gives a specific overdue-day threshold (e.g. 'overdue by more "
-        "than 30 days') or explicitly asks about past-due/late invoices "
-        "rather than just unpaid ones - e.g. 'Show invoices overdue by 30 "
-        "days', 'Which invoices are past due?', or \"Show ABC's overdue "
-        "invoices\". For a general 'who owes us money' with no day "
+        "Returns customer invoices past their due date (status "
+        "'overdue' specifically, not merely unpaid), sorted by days "
+        "overdue, most urgent first. Optional filters: customer_id (e.g. "
+        "'CUST-0007') and/or minimum_days overdue. Use when the user "
+        "gives a day threshold (e.g. 'overdue by more than 30 days') or "
+        "says 'overdue'/'past due' - e.g. 'Show invoices overdue by 30 "
+        "days', 'Which invoices are past due?', \"Show ABC's overdue "
+        "invoices\". For a general 'who owes us money' with no "
         "threshold, use get_unpaid_invoices instead - it covers every "
         "unpaid status, not just 'overdue'."
     ),

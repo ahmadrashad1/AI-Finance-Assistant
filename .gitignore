@@ -38,3 +38,6 @@ Thumbs.db
 
 # Superpowers brainstorming sessions (visual companion mockups)
 .superpowers/
+
+# Git worktrees for isolated milestone work
+.worktrees/

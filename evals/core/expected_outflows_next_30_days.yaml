@@ -1,0 +1,12 @@
+id: expected_outflows_next_30_days
+category: cashflow_parameter_extraction
+user_message: "What do we owe over the next 30 days?"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "next 30 days"
+    - tool: get_expected_outflows
+      parameters:
+        date_from: "<piped>"
+        date_to: "<piped>"

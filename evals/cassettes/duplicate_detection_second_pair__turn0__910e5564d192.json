@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"find_duplicate_invoices\",\n         \"parameters\": {\n            \"invoice_number\": \"INV-9004\"\n         }\n      }\n   ]\n}",
+  "response_text": "Invoice INV-9004 is a duplicate of INV-7192. The two invoices are identical in all fields except for the invoice numbers and dates. They both belong to Harbor Materials and have the same total amount of $17,496.00.\n\nHere is the summary of the duplicate invoices:\n| Invoice # | Customer             | Issue Date      | Total   |\n| ---      | ---                 | ---            | ---    |\n| INV-7192 | Harbor Materials    | 2025-07-30     | $17,496.00 |\n| INV-9004 | Harbor Materials    | 2025-07-31     | $17,496.00 |\n\n(Showing 2 out of 2 total invoices. Total invoice count: 2)"
+}

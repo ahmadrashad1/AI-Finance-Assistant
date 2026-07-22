@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_vendor_balance\",\n         \"parameters\": {\n            \"vendor_name\": \"Fictional Nonexistent Co\"\n         }\n      }\n   ]\n}",
+  "response_text": "I couldn't find Fictional Nonexistent Co in our records. The \"get_vendor_balance\" tool returned an error message stating that the vendor does not exist. Unfortunately, this means I don't have any information about what they owe us."
+}

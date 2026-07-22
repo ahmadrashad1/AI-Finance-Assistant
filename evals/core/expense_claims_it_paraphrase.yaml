@@ -1,0 +1,8 @@
+id: expense_claims_it_paraphrase
+category: expense_phrasing
+user_message: "What expense claims has IT submitted?"
+expectations:
+  expected_tools:
+    - tool: get_expense_claims
+      parameters:
+        department_id: "IT"

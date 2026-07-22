@@ -1,0 +1,13 @@
+id: payment_behavior_deteriorating
+category: credit_phrasing
+user_message: "How has Ridgeline Fabrication Ltd.'s payment behavior changed over time?"
+expectations:
+  expected_tools:
+    - tool: get_customer
+      parameters:
+        customer_name: "Ridgeline Fabrication Ltd."
+    - tool: get_customer_payment_behavior
+      parameters:
+        customer_id: "<piped>"
+  required_facts:
+    - "deteriorating"

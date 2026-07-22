@@ -43,6 +43,59 @@ class DuplicateToolError(ValueError):
     """Raised when a tool name is registered more than once."""
 
 
+def _simplify_schema(node: Any) -> Any:
+    """Strip planner-irrelevant verbosity from a Pydantic JSON schema.
+
+    Pydantic's `model_json_schema()` is written for tooling that needs a
+    fully faithful schema (codegen, OpenAPI, runtime validators) - it pads
+    every field with a `title` that just restates the field name, and
+    represents `Optional[X]` as `anyOf: [{X}, {"type": "null"}]` plus a
+    redundant coercion variant for Decimal fields. None of that helps the
+    LLM planner decide which tool/parameters to use; it only inflates the
+    token count of a prompt sent on every single planning call. With the
+    Phase A domain tools taking the catalog to 26 tools, the unsimplified
+    schema pushes a single planning request (~8981 tokens) past this
+    account's Groq TPM budget (6000) - every live call fails with a 413
+    before the model ever sees the request. This is a pure serialization
+    simplification: the *actual* parameter model used to validate tool
+    calls is untouched, only what's shown to the planner is condensed.
+    """
+    if isinstance(node, dict):
+        node = dict(node)
+        node.pop("title", None)
+        if "anyOf" in node:
+            variants = [_simplify_schema(v) for v in node.pop("anyOf")]
+            non_null = [v for v in variants if v.get("type") != "null"]
+            had_null = len(non_null) != len(variants)
+            # Pydantic represents Decimal as anyOf[number, pattern-constrained
+            # string, null] so plain strings can be coerced at validation time.
+            # The planner only needs to know "this is a number".
+            if len(non_null) > 1:
+                numeric = [v for v in non_null if v.get("type") == "number"]
+                if numeric:
+                    non_null = numeric
+            if len(non_null) == 1:
+                merged = non_null[0]
+                for key, value in node.items():
+                    merged.setdefault(key, value)
+                node = merged
+            else:
+                node["anyOf"] = non_null
+            if had_null:
+                node["nullable"] = True
+        # "default" is always null where present (optionality is already
+        # conveyed by "nullable"); "additionalProperties"/"minimum" are
+        # validation-time concerns the planner doesn't need to see.
+        node.pop("pattern", None)
+        node.pop("default", None)
+        node.pop("additionalProperties", None)
+        node.pop("minimum", None)
+        return {key: _simplify_schema(value) for key, value in node.items()}
+    if isinstance(node, list):
+        return [_simplify_schema(item) for item in node]
+    return node
+
+
 class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, ToolSpec] = {}
@@ -63,7 +116,7 @@ class ToolRegistry:
             {
                 "name": spec.name,
                 "description": spec.description,
-                "parameters": spec.parameters_model.model_json_schema(),
+                "parameters": _simplify_schema(spec.parameters_model.model_json_schema()),
             }
             for spec in self._tools.values()
         ]

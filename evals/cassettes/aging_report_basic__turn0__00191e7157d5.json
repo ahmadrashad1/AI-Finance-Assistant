@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_aging_report\",\n         \"parameters\": {}\n      }\n   ]\n}",
+  "response_text": "**Aging Report:**\n\n| **Bucket** | **Invoice Count** | **Total Balance** |\n| --- | --- | --- |\n| **Current** | 7 | $144,239.40 |\n| **0-30** | 5 | $144,255.60 |\n| **31-60** | 5 | $111,310.20 |\n| **61-90** | 2 | $95,472.00 |\n| **90+** | 70 | $2,179,291.50 |\n\n**Total Balance:** $2,674,568.70\n(shown are top 5 buckets out of 5 total; grand total includes all buckets)"
+}

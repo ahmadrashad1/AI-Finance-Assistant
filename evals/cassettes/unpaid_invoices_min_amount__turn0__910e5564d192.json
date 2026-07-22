@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\": [\n      {\n         \"tool\": \"get_unpaid_invoices\",\n         \"parameters\": {\n            \"minimum_amount\": 10000\n         }\n      }\n   ]\n}",
+  "response_text": "Here are the unpaid invoices over $10,000:\n| Issue Date | Customer Name | Invoice Number | Total | Balance | Due Date |\n| --- | --- | --- | --- | --- | --- |\n| 2026-04-28 | Anchor Materials | INV-7191 | $96,795.00 | $96,795.00 | 2026-06-12 |\n| 2025-06-02 | Cascade Materials | INV-9002 | $91,287.00 | $91,287.00 | 2025-07-31 |\n| 2025-08-12 | Cascade Manufacturing | INV-7060 | $86,643.00 | $86,643.00 | 2025-09-11 |\n| 2025-10-22 | Summit Components | INV-7152 | $83,997.00 | $83,997.00 | 2025-11-06 |\n\nSummary: Showing only the top 4 records out of a total of 72 unpaid invoices. The total outstanding amount is $2,581,402.50."
+}

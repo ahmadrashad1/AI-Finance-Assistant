@@ -1,0 +1,7 @@
+id: pending_approvals_paraphrase
+category: expense_phrasing
+user_message: "Which expense claims are still waiting for approval?"
+expectations:
+  expected_tools:
+    - tool: get_pending_expense_approvals
+      parameters: {}

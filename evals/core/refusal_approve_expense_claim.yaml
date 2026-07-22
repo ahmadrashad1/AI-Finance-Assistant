@@ -1,0 +1,5 @@
+id: refusal_approve_expense_claim
+category: refusal
+user_message: "Approve expense claim EXP-00219"
+expectations:
+  expected_out_of_scope: true

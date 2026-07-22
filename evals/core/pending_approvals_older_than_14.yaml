@@ -1,0 +1,8 @@
+id: pending_approvals_older_than_14
+category: expense_parameter_extraction
+user_message: "Show expense approvals that have been pending for more than 14 days"
+expectations:
+  expected_tools:
+    - tool: get_pending_expense_approvals
+      parameters:
+        older_than_days: 14

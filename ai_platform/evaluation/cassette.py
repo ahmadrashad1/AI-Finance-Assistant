@@ -1,15 +1,93 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
-from collections.abc import AsyncIterator
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
+from typing import Final
 
 from ai_platform.llm.service import LLMService
 from ai_platform.prompts.planning_prompt import VERSION as PLANNING_PROMPT_VERSION
 from ai_platform.prompts.system_prompt import VERSION as SYSTEM_PROMPT_VERSION
 
 DEFAULT_CASSETTES_ROOT = Path(__file__).resolve().parents[2] / "evals" / "cassettes"
+
+# Milestone 12's larger tool catalog (26 tools) means a single planning
+# call's tools_json + rules alone uses ~5900 of this Groq account's 6000
+# TPM budget - every live call (Phase 1 planning *and* Phase 2 response
+# generation are both real Groq calls) needs the account's token bucket to
+# have mostly refilled since the last one, or it 413s ("Request too large
+# ... tokens per minute"). Throttling only Phase 1 (the big call) isn't
+# enough: when tool execution is fast there's little natural delay before
+# Phase 2 fires and it 413s instead. So this lives here, in
+# RecordingLLMService, which is the single choke point both phases funnel
+# through during live recording - never during recorded-mode replay
+# (ScriptedLLMService), which makes no network calls and must stay fast.
+_LIVE_CALL_MIN_INTERVAL_SECONDS: Final[float] = 100.0
+_last_live_call_at: float | None = None
+
+
+async def _throttle_live_call() -> None:
+    global _last_live_call_at
+    now = time.monotonic()
+    if _last_live_call_at is not None:
+        elapsed = now - _last_live_call_at
+        remaining = _LIVE_CALL_MIN_INTERVAL_SECONDS - elapsed
+        if remaining > 0:
+            await asyncio.sleep(remaining)
+    _last_live_call_at = time.monotonic()
+
+
+# Bounded deliberately low: each retry can itself wait up to ~70s (see
+# _rate_limit_wait_seconds), so worst case is _MAX_RETRIES * (~170s) per
+# LLM call, and a two-turn case makes up to 4 such calls. A generous retry
+# count here turned one already-slow case into a run that looked hung for
+# most of an hour. 2 gives one real second chance without letting a single
+# case's recording run away.
+_MAX_RETRIES: Final[int] = 2
+
+
+def _rate_limit_wait_seconds(exc: BaseException) -> float | None:
+    """If `exc` (an AIError raised by GroqLLMService/AnthropicLLMService)
+    wraps a 429/413 token-rate-limit response, return how long to wait
+    before retrying - read from the provider's own `retry-after` /
+    `x-ratelimit-reset-tokens` response headers rather than guessed, since
+    a fixed guess is exactly what `_throttle_live_call`'s fixed interval
+    already is, and it isn't always enough (this account's TPM budget is
+    tight enough that the natural per-turn processing time - tool
+    execution, DB writes - eats an unpredictable amount of the recovery
+    window). Returns None for anything that isn't a rate-limit response
+    (a genuine error should propagate, not retry).
+    """
+    cause = exc.__cause__
+    response = getattr(cause, "response", None)
+    if response is None or getattr(response, "status_code", None) not in (413, 429):
+        return None
+    headers = getattr(response, "headers", {})
+    for header in ("retry-after", "x-ratelimit-reset-tokens", "x-ratelimit-reset-requests"):
+        value = headers.get(header)
+        if value is None:
+            continue
+        try:
+            return min(float(str(value).rstrip("s")), 70.0)  # capped - bound worst-case retry time
+        except ValueError:
+            continue
+    return 65.0  # rate-limited but no usable header - fall back to a full window
+
+
+async def _with_rate_limit_retry[T](call: Callable[[], Awaitable[T]]) -> T:
+    for attempt in range(_MAX_RETRIES):
+        await _throttle_live_call()
+        try:
+            return await call()
+        except Exception as exc:  # noqa: BLE001 - inspected below, re-raised if not a rate limit
+            wait = _rate_limit_wait_seconds(exc)
+            if wait is None or attempt == _MAX_RETRIES - 1:
+                raise
+            await asyncio.sleep(wait + 5.0)  # +5s safety margin past the reported reset
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def prompt_version_hash() -> str:
@@ -89,14 +167,25 @@ class RecordingLLMService:
     async def stream_reply(
         self, system: str, history: list[dict[str, str]], message: str
     ) -> AsyncIterator[str]:
+        # Buffered (not truly streamed) under retry: a 413/429 must be
+        # caught and retried *before* any chunk reaches the caller, since
+        # once tokens have been yielded downstream there's no way to
+        # "retry" a partially-delivered reply. This only affects live
+        # recording (never recorded-mode replay), where nothing consumes
+        # chunks incrementally anyway - the whole reply is captured into
+        # one cassette string regardless.
+        async def _call() -> list[str]:
+            return [chunk async for chunk in self._wrapped.stream_reply(system, history, message)]
+
+        chunks = await _with_rate_limit_retry(_call)
         self.stream_reply_called = True
-        chunks: list[str] = []
-        async for chunk in self._wrapped.stream_reply(system, history, message):
-            chunks.append(chunk)
-            yield chunk
         self.last_response_text = "".join(chunks)
+        for chunk in chunks:
+            yield chunk
 
     async def complete(self, system: str, history: list[dict[str, str]], message: str) -> str:
-        raw = await self._wrapped.complete(system, history, message)
+        raw = await _with_rate_limit_retry(
+            lambda: self._wrapped.complete(system, history, message)
+        )
         self.last_plan_response = raw
         return raw

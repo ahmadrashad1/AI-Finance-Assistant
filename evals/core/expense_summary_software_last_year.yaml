@@ -1,0 +1,13 @@
+id: expense_summary_software_last_year
+category: expense_parameter_extraction
+user_message: "How much did we spend on software last year, broken down by department?"
+expectations:
+  expected_tools:
+    - tool: resolve_date_range
+      parameters:
+        expression: "last year"
+    - tool: get_expense_summary_by_department
+      parameters:
+        category: "software"
+        date_from: "<piped>"
+        date_to: "<piped>"

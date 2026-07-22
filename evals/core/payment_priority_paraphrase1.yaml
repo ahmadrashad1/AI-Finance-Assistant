@@ -1,0 +1,7 @@
+id: payment_priority_paraphrase1
+category: cashflow_phrasing
+user_message: "Which vendor invoices should I pay first this week?"
+expectations:
+  expected_tools:
+    - tool: get_payment_prioritization
+      parameters: {}

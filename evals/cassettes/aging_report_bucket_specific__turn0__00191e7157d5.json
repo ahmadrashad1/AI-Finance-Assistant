@@ -1,0 +1,4 @@
+{
+  "plan_response": "{\n  \"tool_calls\":[\n      {\n         \"tool\":\"get_aging_report\",\n         \"parameters\":{}\n      }\n   ]\n}",
+  "response_text": "Based on the aging report, here's a breakdown of what customers owe us by how late they are:\n\n> current | 7 invoices, total balance: $144,239.40\n------------|-------------------------\n| 0-30 days | 5 invoices, total balance: $144,255.60\n------------|-------------------------\n| 31-60 days | 5 invoices, total balance: $111,310.20\n------------|-------------------------\n| 61-90 days | 2 invoices, total balance: $95,472.00\n------------|-------------------------\n| 90+ days | 70 invoices, total balance: $2,179,291.50\n\nTotal: 89 invoices, total balance: $2,674,568.70\n\nNote: The result shows only the top 4 record buckets out of the total count. The actual report includes all invoice dates. \n\nWe are currently owed $2,674,568.70 by 89 customers."
+}
